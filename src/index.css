@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #f4faff;
+  }
+  body {
+    overscroll-behavior: none;
+    font-family: 'Nunito Sans', sans-serif;
+    min-height: max(884px, 100dvh);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  main > :first-child {
+    margin-top: 0 !important;
+  }
+  main > :last-child {
+    margin-bottom: 0 !important;
+  }
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Responsive shell: phone -> centered column -> tablet -> desktop grid. */
+:root {
+  --shell: 480px;
+}
+@media (min-width: 768px) {
+  :root { --shell: 900px; }
+}
+@media (min-width: 1180px) {
+  :root { --shell: 1160px; }
+}
+
+body {
+  background: linear-gradient(180deg, #e6eff5 0%, #f4faff 40%);
+}
+#root > div {
+  max-width: var(--shell);
+  margin-inline: auto;
+  box-shadow: 0 0 60px rgba(15, 43, 72, 0.08);
+}
+
+@media (min-width: 520px) {
+  /* fixed header / floating button stay inside the shell */
+  #root header.fixed {
+    left: 50%;
+    right: auto;
+    width: min(100%, var(--shell));
+    transform: translateX(-50%);
+  }
+  #root .fixed.right-margin-mobile {
+    right: max(1.25rem, calc((100vw - var(--shell)) / 2 + 1.25rem));
+  }
+  #root nav.fixed {
+    left: 50%;
+    right: auto;
+    width: min(100%, var(--shell));
+    transform: translateX(-50%);
+  }
+}
+
+@media (min-width: 768px) {
+  /* bottom nav becomes a floating pill */
+  #root nav.fixed {
+    width: min(92vw, 480px);
+    bottom: 1rem;
+    border-radius: 9999px;
+    box-shadow: 0 12px 40px rgba(15, 43, 72, 0.18);
+  }
+  #root nav.fixed > div { height: 4.5rem; }
+  #root .fixed.right-margin-mobile { bottom: 7rem; }
+
+  /* two-column dashboard grid */
+  #root main { padding-bottom: 8rem; }
+  #root main > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    align-items: start;
+    padding-inline: 2rem;
+    padding-top: 0.75rem;
+  }
+  #root main > div > * {
+    margin: 0 !important;
+    min-width: 0;
+  }
+  #root main > div > :first-child { grid-column: 1 / -1; }
+  [data-screen='map'] main > div { padding-inline: 0; }
+  [data-screen='map'] main > div > section:first-child { padding-inline: 2rem; }
+  [data-screen='map'] section.h-\[420px\] { height: 560px; }
+  [data-screen='map'] main > div > section:last-child { padding-inline: 1.5rem; }
+  /* long feeds read better as a single centered column */
+  [data-screen='alerts'] main > div {
+    display: flex;
+    flex-direction: column;
+    max-width: 760px;
+    margin-inline: auto;
+  }
+  [data-screen='alerts'] main > div > * + * { margin-top: 1.25rem !important; }
+}
+
+@media (min-width: 1180px) {
+  #root main > div { gap: 1.5rem; padding-inline: 2.5rem; }
+  /* hero sections get the wider column */
+  [data-screen='home'] main > div > section:nth-child(2) { grid-row: span 2; }
+}
