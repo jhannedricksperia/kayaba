@@ -3,9 +3,10 @@ import PlaceSearch from '../components/PlaceSearch.jsx';
 import ForecastCards from '../components/ForecastCards.jsx';
 import { useLive } from '../lib/live.jsx';
 import AiAssessment from '../components/AiAssessment.jsx';
-import LiveMap from '../components/LiveMap.jsx';
+import { NearbyShelters, ShareStatus } from '../components/HomeExtras.jsx';
+import LiveMap from '../components/MapView.jsx';
 import TimeSteps from '../components/TimeSteps.jsx';
-import { classify, describeDepth, describeRain } from '../lib/weather.js';
+import { classify, describeDepth, describeRain, formatHour, sceneMode } from '../lib/weather.js';
 import ThreeScene from '../components/ThreeScene.jsx';
 import init from './scripts/home.js';
 
@@ -16,7 +17,11 @@ export default function Home({ go }) {
   useEffect(() => {
     if (!live.data || !window.__applyLiveDepth) return;
     const d = live.data.peak.depth;
-    window.__applyLiveDepth(d, classify(d).key, describeDepth(d));
+    const when = d >= 0.1 ? ` • peak ${formatHour(live.data.peak.time)}` : '';
+    window.__applyLiveDepth(d, classify(d).key, `${describeDepth(d)}${when}`);
+    const mode = sceneMode(live.data);
+    window.__lastWeather = mode;
+    if (window.__setWeatherMode) window.__setWeatherMode(mode);
   }, [live.data]);
   return (
     <div data-screen="home" className="bg-surface font-body-md text-on-surface flex flex-col min-h-screen selection:bg-secondary-container">
@@ -48,11 +53,6 @@ export default function Home({ go }) {
                 expand_more
               </span>
             </button>
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-md shadow-primary/20">
-              <span className="material-symbols-outlined text-on-primary text-[18px]">
-                person
-              </span>
-            </div>
           </div>
         </div>
       </header>
@@ -66,18 +66,7 @@ export default function Home({ go }) {
                 </span>
               </div>
               <PlaceSearch />
-              <div className="flex items-center gap-1 pr-1 flex-shrink-0">
-                <button aria-label="Voice search" className="w-9 h-9 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant active:scale-95 transition-transform" type="button">
-                  <span className="material-symbols-outlined text-[20px]">
-                    mic
-                  </span>
-                </button>
-                <button aria-label="Filter locations" className="w-9 h-9 rounded-full bg-primary-container text-secondary-container flex items-center justify-center active:scale-95 transition-transform shadow-sm" type="button">
-                  <span className="material-symbols-outlined text-[18px]">
-                    tune
-                  </span>
-                </button>
-              </div>
+              
             </div>
             <div className="flex items-center justify-between bg-primary-container text-on-primary px-3.5 py-2 rounded-full shadow-[0_4px_14px_rgba(15,43,72,0.12)]">
               <div className="flex items-center gap-2 min-w-0">
@@ -118,8 +107,8 @@ export default function Home({ go }) {
               <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-primary/80 via-primary/30 to-transparent pointer-events-none rounded-b-3xl"></div>
               <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between z-10 text-on-primary pointer-events-none">
                 <div>
-                  <span className="font-label-badge text-[11px] uppercase tracking-wider text-secondary-container block">
-                    Predicted Height
+                  <span className="font-label-badge text-[11px] uppercase tracking-wider text-on-primary/90 block">
+                    Predicted peak (next 24h)
                   </span>
                   <div className="flex items-baseline gap-1.5">
                     <span className="font-stat-metric-mobile text-stat-metric-mobile text-on-primary font-bold drop-shadow-md" id="depth-number">
@@ -146,58 +135,7 @@ export default function Home({ go }) {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col gap-1.5 pt-1">
-              <div className="flex items-center justify-between text-on-surface-variant px-1">
-                <span className="font-label-badge text-[11px]">
-                  Tap stage to test "Kaya pa?":
-                </span>
-                <span className="font-body-sm text-[11px] text-secondary font-bold">
-                  {"Pedestrian & Vehicle"}
-                </span>
-              </div>
-              <div className="grid grid-cols-5 gap-1.5" id="stage-selector">
-                <button className="stage-btn flex flex-col items-center justify-center py-2 px-1 rounded-2xl bg-surface-container hover:bg-surface-container-high transition-all active:scale-95 touch-manipulation" data-badge="safe" data-depth="0.2" data-name="Ankle" data-status="Kaya pa!" data-sub="Ankle-deep • All vehicles pass" type="button">
-                  <span className="font-label-badge text-[11px] text-on-surface-variant font-bold">
-                    Ankle
-                  </span>
-                  <span className="font-headline-sm text-[12px] text-primary">
-                    0.2m
-                  </span>
-                </button>
-                <button className="stage-btn flex flex-col items-center justify-center py-2 px-1 rounded-2xl bg-surface-container hover:bg-surface-container-high transition-all active:scale-95 touch-manipulation" data-badge="caution" data-depth="0.5" data-name="Knee" data-status="Ingat!" data-sub="Knee-deep • Sedan risk" type="button">
-                  <span className="font-label-badge text-[11px] text-on-surface-variant font-bold">
-                    Knee
-                  </span>
-                  <span className="font-headline-sm text-[12px] text-primary">
-                    0.5m
-                  </span>
-                </button>
-                <button className="stage-btn active-stage flex flex-col items-center justify-center py-2 px-1 rounded-2xl bg-secondary-container text-primary font-bold shadow-[0_4px_12px_rgba(0,227,253,0.35)] transition-all active:scale-95 touch-manipulation" data-badge="caution" data-depth="0.9" data-name="Waist" data-status="Ingat!" data-sub="Waist-deep • SUV only / Stalling" type="button">
-                  <span className="font-label-badge text-[11px] text-primary font-bold">
-                    Waist
-                  </span>
-                  <span className="font-headline-sm text-[12px] text-primary">
-                    0.9m
-                  </span>
-                </button>
-                <button className="stage-btn flex flex-col items-center justify-center py-2 px-1 rounded-2xl bg-surface-container hover:bg-surface-container-high transition-all active:scale-95 touch-manipulation" data-badge="danger" data-depth="1.3" data-name="Chest" data-status="Hindi na kaya!" data-sub="Chest-deep • Impassable to all" type="button">
-                  <span className="font-label-badge text-[11px] text-on-surface-variant font-bold">
-                    Chest
-                  </span>
-                  <span className="font-headline-sm text-[12px] text-primary">
-                    1.3m
-                  </span>
-                </button>
-                <button className="stage-btn flex flex-col items-center justify-center py-2 px-1 rounded-2xl bg-surface-container hover:bg-surface-container-high transition-all active:scale-95 touch-manipulation" data-badge="danger" data-depth="2.0" data-name="Overhead" data-status="Hindi na kaya!" data-sub="Overhead • Evacuate immediately" type="button">
-                  <span className="font-label-badge text-[11px] text-on-surface-variant font-bold">
-                    Roof
-                  </span>
-                  <span className="font-headline-sm text-[12px] text-primary">
-                    2.0m
-                  </span>
-                </button>
-              </div>
-            </div>
+            
           </section>
           <AiAssessment />
           <section className="grid grid-cols-2 gap-2.5">
@@ -293,7 +231,7 @@ export default function Home({ go }) {
                 </div>
               </div>
               <span className="font-label-badge text-[11px] bg-surface-container text-primary font-bold px-2.5 py-1 rounded-full">
-                Tumana Sector
+                Live forecast
               </span>
             </div>
             <TimeSteps variant="pills" value={mapStep} onChange={setMapStep} />
@@ -317,95 +255,8 @@ export default function Home({ go }) {
 <ForecastCards />
 </div>
           </section>
-          <section className="bg-surface-container-lowest rounded-3xl p-4 shadow-[0_8px_24px_-4px_rgba(15,43,72,0.07)] flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-secondary-container/20 flex items-center justify-center text-primary flex-shrink-0">
-                <span className="material-symbols-outlined text-[24px]">
-                  campaign
-                </span>
-              </div>
-              <div>
-                <h4 className="font-headline-sm text-body-md text-primary font-bold">
-                  See flood on your street?
-                </h4>
-                <p className="font-body-sm text-[12px] text-on-surface-variant">
-                  Help neighbors in Tumana check depth
-                </p>
-              </div>
-            </div>
-            <button className="bg-primary text-on-primary font-label-badge text-[12px] px-3.5 py-2.5 rounded-full active:scale-95 transition-transform flex-shrink-0 font-bold shadow-md" type="button">
-              Report
-            </button>
-          </section>
-          <section className="bg-primary text-on-primary rounded-3xl p-4 shadow-[0_12px_28px_rgba(15,43,72,0.22)] flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-secondary-container text-primary flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[20px]">
-                    shelves
-                  </span>
-                </div>
-                <span className="font-headline-sm text-body-lg font-bold text-on-primary">
-                  Nearest Safe Shelters
-                </span>
-              </div>
-              <span className="font-label-badge text-[12px] bg-secondary-container/20 text-secondary-container px-2.5 py-1 rounded-full font-bold">
-                3 Active Nearby
-              </span>
-            </div>
-            <div className="flex flex-col gap-2">
-              <div className="bg-primary-container/80 rounded-2xl p-3 flex items-center justify-between">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-surface-container-highest/20 flex items-center justify-center text-secondary-container flex-shrink-0">
-                    <span className="material-symbols-outlined text-[18px]">
-                      school
-                    </span>
-                  </div>
-                  <div className="truncate">
-                    <p className="font-headline-sm text-body-sm text-on-primary font-bold truncate">
-                      Tumana High School
-                    </p>
-                    <p className="font-body-sm text-[12px] text-primary-fixed-dim">
-                      450m • Ground + 3 floors
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end flex-shrink-0">
-                  <span className="font-label-badge text-[11px] text-secondary-container font-bold">
-                    82% Cap
-                  </span>
-                  <span className="font-body-sm text-[10px] text-on-primary/70">
-                    Open Now
-                  </span>
-                </div>
-              </div>
-              <div className="bg-primary-container/80 rounded-2xl p-3 flex items-center justify-between">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-surface-container-highest/20 flex items-center justify-center text-secondary-container flex-shrink-0">
-                    <span className="material-symbols-outlined text-[18px]">
-                      sports_basketball
-                    </span>
-                  </div>
-                  <div className="truncate">
-                    <p className="font-headline-sm text-body-sm text-on-primary font-bold truncate">
-                      Concepcion Covered Gym
-                    </p>
-                    <p className="font-body-sm text-[12px] text-primary-fixed-dim">
-                      800m • High ground pad
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end flex-shrink-0">
-                  <span className="font-label-badge text-[11px] text-secondary-fixed-dim font-bold">
-                    45% Cap
-                  </span>
-                  <span className="font-body-sm text-[10px] text-on-primary/70">
-                    Open Now
-                  </span>
-                </div>
-              </div>
-            </div>
-          </section>
+          <ShareStatus />
+          <NearbyShelters />
         </div>
       </main>
       <div className="fixed bottom-24 right-margin-mobile z-40">

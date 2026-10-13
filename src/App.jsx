@@ -4,6 +4,8 @@ import MapScreen from './screens/MapScreen.jsx';
 import Forecast from './screens/Forecast.jsx';
 import Alerts from './screens/Alerts.jsx';
 import { LiveProvider } from './lib/live.jsx';
+import BottomNav from './components/BottomNav.jsx';
+import ChatWidget from './components/ChatWidget.jsx';
 
 const SCREENS = { home: Home, map: MapScreen, forecast: Forecast, alerts: Alerts };
 
@@ -34,6 +36,8 @@ export default function App() {
   return (
     <LiveProvider>
       <Screen key={screen} go={go} />
+      <BottomNav active={screen} go={go} />
+      <ChatWidget />
     </LiveProvider>
   );
 }

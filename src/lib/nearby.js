@@ -2,6 +2,7 @@
 const ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
 ];
 
 const KINDS = {
@@ -23,7 +24,7 @@ export function distanceM(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-export async function fetchNearby(place, signal) {
+async function load(place) {
   const { lat, lon } = place;
   const query = `[out:json][timeout:25];
 (
@@ -34,24 +35,19 @@ out center 60;
 way(around:2000,${lat},${lon})[waterway~"^(river|stream|canal)$"];
 out geom 40;`;
 
-  let lastError;
-  for (const url of ENDPOINTS) {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        body: 'data=' + encodeURIComponent(query),
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        signal,
-      });
-      if (!res.ok) throw new Error(`Overpass ${res.status}`);
-      const json = await res.json();
-      return parse(json.elements || [], place);
-    } catch (e) {
-      if (e.name === 'AbortError') throw e;
-      lastError = e;
-    }
-  }
-  throw lastError;
+  // Ask every mirror at once; the first good answer wins.
+  const one = async (url) => {
+    const res = await fetch(url, {
+      method: 'POST',
+      body: 'data=' + encodeURIComponent(query),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) throw new Error(`Overpass ${res.status}`);
+    const json = await res.json();
+    return parse(json.elements || [], place);
+  };
+  return Promise.any(ENDPOINTS.map(one));
 }
 
 function parse(elements, place) {
@@ -84,4 +80,23 @@ function parse(elements, place) {
   }
   shelters.sort((a, b) => a.distance - b.distance);
   return { shelters: shelters.slice(0, 25), waterways };
+}
+
+// Map and shelter list share one request per place.
+const cache = new Map();
+export function fetchNearby(place, signal) {
+  const key = `${place.lat.toFixed(3)},${place.lon.toFixed(3)}`;
+  if (!cache.has(key)) {
+    cache.set(
+      key,
+      load(place).catch((e) => {
+        cache.delete(key);
+        throw e;
+      })
+    );
+  }
+  return cache.get(key).then((res) => {
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    return res;
+  });
 }

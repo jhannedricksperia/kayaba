@@ -28,12 +28,13 @@ const shelterIcon = () =>
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-export default function LiveMap({ stepIndex = 0, className = '', onNearby }) {
+export default function LiveMap({ stepIndex = 0, className = '', onNearby, layers = { flood: true, water: true, shelters: true } }) {
   const { place, setPlace, data } = useLive();
   const host = useRef(null);
   const map = useRef(null);
-  const layers = useRef({ flood: null, user: null, shelters: null, water: null });
+  const layersRef = useRef({ flood: null, user: null, shelters: null, water: null });
   const [status, setStatus] = useState('');
+  const layers_ref = () => layersRef.current;
 
   // create the map once
   useEffect(() => {
@@ -43,10 +44,10 @@ export default function LiveMap({ stepIndex = 0, className = '', onNearby }) {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(m);
     L.control.zoom({ position: 'topright' }).addTo(m);
-    layers.current.flood = L.layerGroup().addTo(m);
-    layers.current.water = L.layerGroup().addTo(m);
-    layers.current.shelters = L.layerGroup().addTo(m);
-    layers.current.user = L.layerGroup().addTo(m);
+    layersRef.current.flood = L.layerGroup().addTo(m);
+    layersRef.current.water = L.layerGroup().addTo(m);
+    layersRef.current.shelters = L.layerGroup().addTo(m);
+    layersRef.current.user = L.layerGroup().addTo(m);
     map.current = m;
     // container may have been laid out after creation
     const t = setTimeout(() => m.invalidateSize(), 100);
@@ -69,7 +70,7 @@ export default function LiveMap({ stepIndex = 0, className = '', onNearby }) {
     setStatus('Loading nearby shelters…');
     fetchNearby(place, ctrl.signal)
       .then((res) => {
-        const { shelters, water } = layers.current;
+        const { shelters, water } = layersRef.current;
         if (!shelters) return;
         shelters.clearLayers();
         water.clearLayers();
@@ -93,7 +94,7 @@ export default function LiveMap({ stepIndex = 0, className = '', onNearby }) {
 
   // flood zone + "you are here" follow the selected time step
   useEffect(() => {
-    const { flood, user } = layers.current;
+    const { flood, user } = layersRef.current;
     if (!flood) return;
     flood.clearLayers();
     user.clearLayers();
@@ -112,6 +113,16 @@ export default function LiveMap({ stepIndex = 0, className = '', onNearby }) {
     );
     L.marker([place.lat, place.lon], { icon: pinIcon(`Ikaw • ${depth.toFixed(1)} m`) }).addTo(user);
   }, [data, stepIndex, place.lat, place.lon]);
+
+  useEffect(() => {
+    const m = map.current;
+    const g = layers_ref();
+    if (!m || !g.flood) return;
+    [['flood', g.flood], ['water', g.water], ['shelters', g.shelters]].forEach(([key, grp]) => {
+      if (layers[key] === false) m.removeLayer(grp);
+      else if (!m.hasLayer(grp)) m.addLayer(grp);
+    });
+  }, [layers.flood, layers.water, layers.shelters]);
 
   const locate = () => {
     if (!navigator.geolocation) return;

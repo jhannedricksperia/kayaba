@@ -3,7 +3,7 @@
 const FORECAST = 'https://api.open-meteo.com/v1/forecast';
 const GEOCODE = 'https://geocoding-api.open-meteo.com/v1/search';
 
-export const DEFAULT_PLACE = { name: 'Marikina City', admin: 'Metro Manila', lat: 14.6507, lon: 121.1029 };
+export const DEFAULT_PLACE = { name: 'Manila', admin: 'Metro Manila', lat: 14.5995, lon: 120.9842 };
 
 export async function searchPlaces(query, signal) {
   const url = `${GEOCODE}?name=${encodeURIComponent(query)}&count=6&language=en&countryCode=PH`;
@@ -22,9 +22,10 @@ export async function fetchForecast(place, signal) {
   const params = new URLSearchParams({
     latitude: place.lat,
     longitude: place.lon,
-    current: 'precipitation,wind_speed_10m,wind_gusts_10m,weather_code',
+    current: 'precipitation,wind_speed_10m,wind_gusts_10m,weather_code,is_day',
     hourly: 'precipitation,weather_code,wind_speed_10m',
-    forecast_days: '2',
+    daily: 'precipitation_sum,precipitation_probability_max,wind_speed_10m_max,weather_code',
+    forecast_days: '5',
     past_hours: '6',
     wind_speed_unit: 'kmh',
     timezone: 'auto',
@@ -135,6 +136,16 @@ function summarize(d) {
     signal: windSignal(maxWind),
     nowDepth,
     nowMm: acc3(nowIdx),
+    isDay: d.current.is_day === 1,
+    weatherCode: d.current.weather_code,
+    daily: (d.daily?.time || []).slice(0, 5).map((date, i) => ({
+      date,
+      mm: d.daily.precipitation_sum[i] ?? 0,
+      prob: d.daily.precipitation_probability_max?.[i] ?? null,
+      windMax: d.daily.wind_speed_10m_max[i] ?? 0,
+      icon: weatherIcon(d.daily.weather_code[i]),
+      worstDepth: depthFromRain((d.daily.precipitation_sum[i] ?? 0) * 0.3, elevation),
+    })),
     peak: peak.depth >= nowDepth ? peak : { ...peak, depth: nowDepth, time: d.current.time },
     steps,
   };
@@ -144,4 +155,10 @@ export function formatHour(iso) {
   const h = Number(iso.slice(11, 13));
   const suffix = h >= 12 ? 'PM' : 'AM';
   return `${((h + 11) % 12) + 1}:00 ${suffix}`;
+}
+
+// Scene weather follows the forecast: rain wins, otherwise day or night at the location.
+export function sceneMode(data) {
+  if (data.rainNow >= 0.1 || data.weatherCode >= 51) return 'rain';
+  return data.isDay ? 'day' : 'night';
 }

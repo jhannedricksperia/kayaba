@@ -1,6 +1,6 @@
 // Vercel serverless function: asks Gemini to turn weather + terrain into a flood assessment.
 // Set GEMINI_API_KEY in the Vercel project settings (never in client code).
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 const ENDPOINT = (model) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
 const SYSTEM = `You are the flood-risk estimator inside "Kaya Ba?", a Philippine street-level flood forecast app.
@@ -35,6 +35,24 @@ const SCHEMA = {
     confidence: { type: 'STRING', enum: ['low', 'medium', 'high'] },
   },
 };
+
+// Preview models are sometimes overloaded (503); try the next one instead of failing.
+const MODELS = [...new Set([MODEL, 'gemini-3.8-flash', 'gemini-3.5-flash-lite'])];
+
+async function fetchWithFallback(init) {
+  let last;
+  for (const model of MODELS) {
+    try {
+      last = await fetch(ENDPOINT(model), { ...init, signal: AbortSignal.timeout(12000) });
+      if (last.ok || (last.status < 500 && last.status !== 429)) return last;
+      console.error('assess:', model, last.status);
+    } catch (e) {
+      console.error('assess:', model, e.name);
+    }
+  }
+  if (!last) throw new Error('No response from Gemini');
+  return last;
+}
 
 const cache = new Map(); // best-effort per warm instance: key -> { at, value }
 const TTL = 20 * 60 * 1000;
@@ -80,7 +98,7 @@ export default async function handler(req, res) {
   if (hit && Date.now() - hit.at < TTL) return res.status(200).json({ ...hit.value, cached: true });
 
   try {
-    const upstream = await fetch(ENDPOINT(MODEL), {
+    const upstream = await fetchWithFallback({
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
@@ -94,9 +112,11 @@ export default async function handler(req, res) {
           responseSchema: SCHEMA,
         },
       }),
-      signal: AbortSignal.timeout(25000),
     });
-    if (!upstream.ok) return res.status(502).json({ error: `Gemini returned ${upstream.status}` });
+    if (!upstream.ok) {
+      console.error("assess: Gemini", upstream.status, (await upstream.text()).slice(0, 300));
+      return res.status(502).json({ error: `Gemini returned ${upstream.status}` });
+    }
 
     const json = await upstream.json();
     const text = json.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('');
@@ -117,7 +137,8 @@ export default async function handler(req, res) {
     };
     cache.set(key, { at: Date.now(), value });
     return res.status(200).json(value);
-  } catch {
-    return res.status(502).json({ error: 'Assessment unavailable' });
+  } catch (e) {
+    console.error("assess failed", e);
+    return res.status(502).json({ error: "Assessment unavailable" });
   }
 }

@@ -57,11 +57,9 @@
 :root {
   --shell: 480px;
 }
+/* From tablet up the app uses the whole viewport. */
 @media (min-width: 768px) {
-  :root { --shell: 900px; }
-}
-@media (min-width: 1180px) {
-  :root { --shell: 1160px; }
+  :root { --shell: min(100vw, 1600px); }
 }
 
 body {
@@ -105,35 +103,81 @@ body {
 
   /* two-column dashboard grid */
   #root main { padding-bottom: 8rem; }
+  /* two independent columns (no row gaps): cards flow down the left, then the right */
   #root main > div {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1.25rem;
-    align-items: start;
+    display: block;
+    column-count: 2;
+    column-gap: 1.75rem;
     padding-inline: 2rem;
     padding-top: 0.75rem;
   }
   #root main > div > * {
-    margin: 0 !important;
+    margin: 0 0 1.5rem !important;
+    break-inside: avoid;
     min-width: 0;
   }
-  #root main > div > :first-child { grid-column: 1 / -1; }
+  #root main > div > :first-child { column-span: all; }
   [data-screen='map'] main > div { padding-inline: 0; }
   [data-screen='map'] main > div > section:first-child { padding-inline: 2rem; }
   [data-screen='map'] section.h-\[420px\] { height: 560px; }
   [data-screen='map'] main > div > section:last-child { padding-inline: 1.5rem; }
   /* long feeds read better as a single centered column */
-  [data-screen='alerts'] main > div {
+  #root [data-screen='alerts'] main > div {
     display: flex;
     flex-direction: column;
+    column-count: auto;
     max-width: 760px;
     margin-inline: auto;
+    gap: 1.5rem;
   }
-  [data-screen='alerts'] main > div > * + * { margin-top: 1.25rem !important; }
+  #root [data-screen='alerts'] main > div > * { margin: 0 !important; }
 }
 
-@media (min-width: 1180px) {
-  #root main > div { gap: 1.5rem; padding-inline: 2.5rem; }
-  /* hero sections get the wider column */
-  [data-screen='home'] main > div > section:nth-child(2) { grid-row: span 2; }
+@media (min-width: 1100px) {
+  #root main > div {
+    column-gap: 2.25rem;
+    padding-inline: 3rem;
+  }
+  #root [data-screen='alerts'] main > div { max-width: 820px; padding-inline: 1rem; }
+  #root [data-screen='map'] main > div { padding-inline: 0; }
+}
+
+/* ---- breathing room + legible type on every screen ---- */
+#root [data-screen] .text-\[9px\],
+#root [data-screen] .text-\[10px\] { font-size: 11.5px; line-height: 1.35; }
+#root [data-screen] .text-\[11px\] { font-size: 12.5px; line-height: 1.4; }
+#root [data-screen] .text-\[12px\] { font-size: 13px; }
+#root [data-screen] main > div { row-gap: 1.5rem; }
+#root [data-screen='alerts'] #alertsList > * + * { margin-top: 1.5rem; }
+#root [data-screen='alerts'] #alertsList > * { padding: 1.5rem; }
+#root [data-screen='alerts'] .truncate { white-space: normal; }
+#root [data-screen='forecast'] section,
+#root [data-screen='map'] section { scroll-margin-top: 5rem; }
+
+/* ---- navigation + screen motion ---- */
+[data-screen] nav.fixed { display: none; } /* each exported screen carried its own static nav */
+
+.kb-nav-pill {
+  transition: transform 0.45s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.kb-nav-icon-on {
+  animation: kb-pop 0.5s cubic-bezier(0.34, 1.6, 0.64, 1);
+}
+@keyframes kb-pop {
+  0% { transform: scale(0.6) translateY(4px); }
+  60% { transform: scale(1.25) translateY(-4px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+[data-screen] {
+  animation: kb-enter 0.35s ease both;
+}
+@keyframes kb-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kb-nav-pill { transition: none; }
+  .kb-nav-icon-on, [data-screen] { animation: none; }
 }

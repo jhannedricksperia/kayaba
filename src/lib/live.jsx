@@ -50,6 +50,35 @@ export function LiveProvider({ children }) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // On load, ask for the visitor's current location. A place they searched for on purpose
+  // is kept; if they decline, the last place or the default is used.
+  useEffect(() => {
+    if (place.source === 'search' || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lon } = pos.coords;
+        let name = 'Your location';
+        let admin = '';
+        try {
+          const r = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`
+          );
+          if (r.ok) {
+            const j = await r.json();
+            name = j.locality || j.city || name;
+            admin = j.principalSubdivision || '';
+          }
+        } catch {
+          /* keep the generic name */
+        }
+        setPlaceState({ name, admin, lat, lon, source: 'gps' });
+      },
+      () => {},
+      { timeout: 10000, maximumAge: 5 * 60 * 1000 }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const setPlace = (p) => {
     setPlaceState(p);
     try {

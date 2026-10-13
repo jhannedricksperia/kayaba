@@ -632,7 +632,8 @@ modes.forEach(m => {
 });
 
 container.style.position = 'relative';
-container.appendChild(uiOverlay);
+window.__setWeatherMode = setWeatherMode;
+if (window.__lastWeather) setWeatherMode(window.__lastWeather);
 
 // Animation Loop
 let rafId = 0;
@@ -721,6 +722,7 @@ return () => {
   cancelAnimationFrame(rafId);
   window.removeEventListener('resize', onResize);
   delete window.__setFloodLevel;
+  delete window.__setWeatherMode;
   renderer.dispose();
   container.innerHTML = '';
 };

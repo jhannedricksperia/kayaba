@@ -38,6 +38,8 @@ A playful, cartoon-style flood forecast web app for the Philippines. It combines
 | **AI Flood Check** | Gemini turns the forecast and terrain into per-time-step flood depths, a risk level and short advice in Taglish. |
 | **Real map** | OpenStreetMap tiles, nearby rivers and canals, and real nearby schools, halls, hospitals and shelters. Switch Now / +3h / +6h / +12h / +24h. |
 | **Forecast strip** | Horizontal 24-hour cards with weather icons and a water-level bar. |
+| **Chat assistant** | A side chat scoped to floods and weather safety. Limits: 280-character questions, 15 per day per browser, short history, per-IP rate limit and short answers. |
+| **Voice** | Voice search (speech to text) and a spoken alert summary (text to speech) using the browser's built-in speech APIs. |
 | **Responsive** | Phone column, tablet, and a two-column desktop dashboard with a floating nav. |
 
 ## How it works
@@ -79,7 +81,7 @@ If the AI function is unavailable (no key, quota, network), the app keeps workin
 
 ```bash
 npm install
-npm run dev        # UI only, AI card falls back to the formula
+npm run dev        # also serves /api locally when GEMINI_API_KEY is in .env.local
 ```
 
 To run the AI endpoint locally too, use the Vercel CLI so `/api/*` is served:
@@ -95,7 +97,9 @@ vercel dev
 | Name | Required | Description |
 |---|---|---|
 | `GEMINI_API_KEY` | for AI | Google AI Studio / Gemini API key. Server-side only, never exposed to the browser. |
-| `GEMINI_MODEL` | no | Defaults to `gemini-3.8-flash`. |
+| `GEMINI_MODEL` | no | Model for the flood assessment. Defaults to `gemini-3.5-flash` (falls back to other Flash models if overloaded). |
+| `GEMINI_CHAT_MODEL` | no | Model for the chat assistant. Defaults to `gemini-3.5-flash-lite`. |
+| `VITE_GOOGLE_MAPS_API_KEY` | no | Use Google Maps instead of OpenStreetMap. Maps JavaScript API key, restrict it by HTTP referrer. |
 
 ## Deploy to Vercel
 
@@ -125,7 +129,7 @@ public/                  logo and bundled images
 - **Flood depth is an estimate.** There is no free street-level flood-depth service. The number comes from a simple formula plus an AI judgement and has not been validated against real flood events. Do not use it as the basis for evacuation decisions.
 - **Typhoon signal is derived** from forecast wind speed using PAGASA's thresholds. It is not the official bulletin.
 - **Flood zones on the map are illustrative** circles that grow with the estimated depth, not surveyed flood extents.
-- **Still demo content:** the Forecast and Alerts screens, the barangay details panel on the Map screen, and the Report / Hotlines buttons.
+- Alerts are generated from the live forecast and the AI estimate. They are not official bulletins.
 - Shelter data is only as complete as OpenStreetMap in your area.
 
 Always follow official advisories from **PAGASA**, **NDRRMC** and your local **LGU / barangay**.
