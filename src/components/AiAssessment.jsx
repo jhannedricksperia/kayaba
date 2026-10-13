@@ -1,4 +1,5 @@
 import { useLive } from '../lib/live.jsx';
+import { useT } from '../lib/i18n.jsx';
 
 const TONE = {
   safe: 'bg-secondary-container text-primary',
@@ -8,6 +9,12 @@ const TONE = {
 
 export default function AiAssessment() {
   const { ai, terrain, data } = useLive();
+  const { t } = useT();
+  const confidence = {
+    high: t('mataas', 'high'),
+    medium: t('katamtaman', 'medium'),
+    low: t('mababa', 'low'),
+  };
 
   return (
     <section className="bg-surface-container-lowest rounded-3xl p-4 shadow-[0_8px_24px_-4px_rgba(15,43,72,0.07)] flex flex-col gap-2.5">
@@ -20,13 +27,15 @@ export default function AiAssessment() {
         </div>
         {ai.status === 'ok' && (
           <span className={`font-label-badge text-[11px] px-2.5 py-1 rounded-full font-bold ${TONE[ai.risk] || TONE.caution}`}>
-            Tiwala: {{mataas:"mataas",medium:"katamtaman",high:"mataas",low:"mababa"}[ai.confidence] || ai.confidence}
+            {t('Tiwala', 'Confidence')}: {confidence[ai.confidence] || ai.confidence}
           </span>
         )}
       </div>
 
       {ai.status === 'loading' && (
-        <p className="font-body-sm text-on-surface-variant">Tinitingnan ang taas ng lugar at ang ulan…</p>
+        <p className="font-body-sm text-on-surface-variant">
+          {t('Tinitingnan ang taas ng lugar at ang ulan…', 'Checking the ground elevation and rainfall…')}
+        </p>
       )}
 
       {ai.status === 'ok' && (
@@ -42,7 +51,7 @@ export default function AiAssessment() {
           </ul>
           {ai.terrain_note && (
             <p className="font-body-sm text-[12px] text-on-surface-variant bg-surface-container rounded-2xl px-3 py-2">
-              <b className="text-primary">Terrain:</b> {ai.terrain_note}
+              <b className="text-primary">{t('Lupa', 'Terrain')}:</b> {ai.terrain_note}
             </p>
           )}
         </>
@@ -50,17 +59,20 @@ export default function AiAssessment() {
 
       {ai.status === 'unavailable' && (
         <p className="font-body-sm text-[13px] text-on-surface-variant">
-          Hindi magamit ang AI ngayon, kaya kalkulasyon batay sa taas ng lugar at dami ng ulan ang ginamit
-          {data?.terrainFactor ? ` (terrain ×${data.terrainFactor})` : ''}.
+          {t(
+            'Hindi magamit ang AI ngayon, kaya kalkulasyon batay sa taas ng lugar at dami ng ulan ang ginamit',
+            'The AI is unavailable right now, so an estimate based on ground elevation and rainfall is shown'
+          )}
+          {data?.terrainFactor ? ` (${t('lupa', 'terrain')} ×${data.terrainFactor})` : ''}.
         </p>
       )}
 
       {terrain && (
         <div className="grid grid-cols-3 gap-2 text-center">
           {[
-            ['Taas ng lugar', `${terrain.pointElevation} m`],
-            ['Kumpara sa paligid', `${terrain.belowMean > 0 ? '−' : '+'}${Math.abs(terrain.belowMean)} m`],
-            ['Taas-baba (1 km)', `${terrain.relief} m`],
+            [t('Taas ng lugar', 'Elevation'), `${terrain.pointElevation} m`],
+            [t('Kumpara sa paligid', 'Vs surroundings'), `${terrain.belowMean > 0 ? '−' : '+'}${Math.abs(terrain.belowMean)} m`],
+            [t('Taas-baba (1 km)', 'Relief (1 km)'), `${terrain.relief} m`],
           ].map(([k, v]) => (
             <div key={k} className="bg-surface-container rounded-2xl py-1.5">
               <div className="font-label-badge text-[10px] text-on-surface-variant uppercase">{k}</div>
@@ -70,8 +82,8 @@ export default function AiAssessment() {
         </div>
       )}
       <p className="font-body-sm text-[10px] text-on-surface-variant">
-        {ai.status === 'ok' ? 'Tantiya ng AI batay sa taas ng lugar at forecast. ' : ''}
-        Tantiya lang ito at hindi opisyal na babala.
+        {ai.status === 'ok' ? t('Tantiya ng AI batay sa taas ng lugar at forecast. ', 'AI estimate based on elevation and forecast. ') : ''}
+        {t('Tantiya lang ito at hindi opisyal na babala.', 'This is an estimate, not an official warning.')}
       </p>
     </section>
   );

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import PlaceSearch from '../components/PlaceSearch.jsx';
 import ForecastCards from '../components/ForecastCards.jsx';
 import { useLive } from '../lib/live.jsx';
+import { useT } from '../lib/i18n.jsx';
 import AiAssessment from '../components/AiAssessment.jsx';
 import HScroll from '../components/HScroll.jsx';
 import { NearbyShelters, ShareStatus } from '../components/HomeExtras.jsx';
@@ -13,6 +14,7 @@ import init from './scripts/home.js';
 
 export default function Home({ go }) {
   const live = useLive();
+  const { t, lang } = useT();
   const [mapStep, setMapStep] = useState(0);
   const [gaugeFull, setGaugeFull] = useState(false);
   useEffect(() => { init(); }, []);
@@ -31,12 +33,12 @@ export default function Home({ go }) {
   useEffect(() => {
     if (!live.data || !window.__applyLiveDepth) return;
     const d = live.data.peak.depth;
-    const when = d >= 0.1 ? ` • peak ${formatHour(live.data.peak.time)}` : '';
-    window.__applyLiveDepth(d, classify(d).key, `${describeDepth(d)}${when}`);
+    const when = d >= 0.15 ? ` • peak ${formatHour(live.data.peak.time)}` : '';
+    window.__applyLiveDepth(d, classify(d).key, `${describeDepth(d, lang)}${when}`, live.data.nowDepth);
     const mode = sceneMode(live.data);
     window.__lastWeather = mode;
     if (window.__setWeatherMode) window.__setWeatherMode(mode);
-  }, [live.data]);
+  }, [live.data, lang]);
   return (
     <div data-screen="home" className="bg-surface font-body-md text-on-surface flex flex-col min-h-screen selection:bg-secondary-container">
       <header className="fixed top-0 inset-x-0 z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_4px_20px_-4px_rgba(15,43,72,0.06)]">
@@ -89,7 +91,7 @@ export default function Home({ go }) {
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-secondary-container"></span>
                 </span>
                 <span className="font-label-badge text-[12px] truncate">
-                  {live.data ? (live.data.signal > 0 ? `Wind Signal No. ${live.data.signal} (est.) expected` : 'No tropical cyclone winds forecast') : live.error ? 'Live data unavailable' : 'Loading live forecast…'}
+                  {live.data ? (live.data.signal > 0 ? t(`Inaasahan ang Wind Signal No. ${live.data.signal} (tantiya)`, `Wind Signal No. ${live.data.signal} (est.) expected`) : t('Walang inaasahang malakas na hangin ng bagyo', 'No tropical cyclone winds forecast')) : live.error ? t('Hindi makuha ang forecast', 'Live data unavailable') : t('Kinukuha ang forecast…', 'Loading live forecast…')}
                 </span>
               </div>
               <span className="font-label-badge text-[11px] bg-secondary-container/20 text-secondary-container px-2 py-0.5 rounded-full flex-shrink-0 font-bold ml-1">
@@ -111,7 +113,7 @@ export default function Home({ go }) {
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-secondary animate-pulse"></span>
                 <span className="font-headline-sm text-body-sm text-on-surface-variant font-bold">
-                  Live Water Gauge
+                  {t('Live Water Gauge', 'Live Water Gauge')}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 bg-surface-container-low text-primary px-3.5 py-1 rounded-full shadow-[0_4px_12px_rgba(0,227,253,0.2)]" id="status-badge">
@@ -131,7 +133,7 @@ export default function Home({ go }) {
               <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between z-10 text-on-primary pointer-events-none">
                 <div>
                   <span className="font-label-badge text-[11px] uppercase tracking-wider text-on-primary/90 block">
-                    Predicted peak (next 24h)
+                    {t('Pinakamataas na tantiya (24 oras)', 'Predicted peak (next 24h)')}
                   </span>
                   <div className="flex items-baseline gap-1.5">
                     <span className="font-stat-metric-mobile text-stat-metric-mobile text-on-primary font-bold drop-shadow-md" id="depth-number">
@@ -170,14 +172,14 @@ export default function Home({ go }) {
               </div>
               <div className="min-w-0">
                 <span className="font-label-badge text-[11px] text-on-surface-variant block uppercase">
-                  Rainfall
+                  {t('Ulan', 'Rainfall')}
                 </span>
                 <span className="font-headline-sm text-headline-sm text-primary font-bold truncate block">{live.data ? live.data.rainNow.toFixed(1) : '—'} <span className="text-[13px] font-normal text-on-surface-variant">
                     mm/h
                   </span>
                 </span>
                 <span className="font-body-sm text-[11px] text-secondary font-bold">
-                  {live.data ? describeRain(live.data.rainNow) : '…'}
+                  {live.data ? describeRain(live.data.rainNow, lang) : '…'}
                 </span>
               </div>
             </div>
@@ -189,11 +191,11 @@ export default function Home({ go }) {
               </div>
               <div className="min-w-0">
                 <span className="font-label-badge text-[11px] text-on-surface-variant block uppercase">
-                  Wind Signal (est.)
+                  {t('Wind Signal (tantiya)', 'Wind Signal (est.)')}
                 </span>
                 <span className="font-headline-sm text-headline-sm text-primary font-bold truncate block">{live.data ? (live.data.signal > 0 ? `Signal #${live.data.signal}` : 'None') : '—'}</span>
                 <span className="font-body-sm text-[11px] text-on-surface-variant font-bold">
-                  {live.data ? `Peak wind ${live.data.maxWind} km/h` : '…'}
+                  {live.data ? t(`Pinakamalakas: ${live.data.maxWind} km/h`, `Peak wind ${live.data.maxWind} km/h`) : '…'}
                 </span>
               </div>
             </div>
@@ -205,14 +207,14 @@ export default function Home({ go }) {
               </div>
               <div className="min-w-0">
                 <span className="font-label-badge text-[11px] text-on-surface-variant block uppercase">
-                  Wind Speed
+                  {t('Bilis ng Hangin', 'Wind Speed')}
                 </span>
                 <span className="font-headline-sm text-headline-sm text-primary font-bold truncate block">{live.data ? live.data.windNow : '—'} <span className="text-[13px] font-normal text-on-surface-variant">
                     km/h
                   </span>
                 </span>
                 <span className="font-body-sm text-[11px] text-secondary font-bold">
-                  {live.data ? `Gusts up to ${live.data.gustNow} km/h` : '…'}
+                  {live.data ? t(`Bugso hanggang ${live.data.gustNow} km/h`, `Gusts up to ${live.data.gustNow} km/h`) : '…'}
                 </span>
               </div>
             </div>
@@ -224,14 +226,14 @@ export default function Home({ go }) {
               </div>
               <div className="min-w-0">
                 <span className="font-label-badge text-[11px] text-on-surface-variant block uppercase">
-                  Local Height
+                  {t('Taas ng Lugar', 'Local Height')}
                 </span>
                 <span className="font-headline-sm text-headline-sm text-primary font-bold truncate block">{live.data ? live.data.elevation : '—'} <span className="text-[13px] font-normal text-on-surface-variant">
                     m ASL
                   </span>
                 </span>
                 <span className="font-body-sm text-[11px] text-error font-bold truncate block">
-                  {live.data ? (live.data.elevation < 15 ? 'Low-lying area' : live.data.elevation < 50 ? 'Moderate elevation' : 'High ground') : '…'}
+                  {live.data ? (live.data.elevation < 15 ? t('Mababang lugar', 'Low-lying area') : live.data.elevation < 50 ? t('Katamtamang taas', 'Moderate elevation') : t('Mataas na lugar', 'High ground')) : '…'}
                 </span>
               </div>
             </div>
@@ -246,7 +248,7 @@ export default function Home({ go }) {
                 </div>
                 <div>
                   <h2 className="font-headline-sm text-body-lg text-primary font-bold leading-tight">
-                    {live.place.name} Area
+                    {live.place.name} {t('at paligid', 'Area')}
                   </h2>
                   <p className="font-body-sm text-[12px] text-on-surface-variant">
                     Hydro-crest forecast model
@@ -254,7 +256,7 @@ export default function Home({ go }) {
                 </div>
               </div>
               <span className="font-label-badge text-[11px] bg-surface-container text-primary font-bold px-2.5 py-1 rounded-full">
-                Live forecast
+                {t('Pinakabagong forecast', 'Live forecast')}
               </span>
             </div>
             <TimeSteps variant="pills" value={mapStep} onChange={setMapStep} />
@@ -267,11 +269,11 @@ export default function Home({ go }) {
                   timelapse
                 </span>
                 <h3 className="font-headline-sm text-body-lg text-primary font-bold">
-                  {"Next 24 Hours Rise & Fall"}
+                  {t('Pagtaas at Pagbaba sa 24 Oras', 'Next 24 Hours Rise & Fall')}
                 </h3>
               </div>
               <span className="font-label-badge text-[12px] text-on-surface-variant">
-                Next 24 hrs • 3-hr steps
+                {t('24 oras • bawat 3 oras', 'Next 24 hrs • 3-hr steps')}
               </span>
             </div>
             <HScroll className="gap-2.5 pb-2 pt-0.5"><ForecastCards /></HScroll>

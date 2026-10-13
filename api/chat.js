@@ -70,6 +70,7 @@ export default async function handler(req, res) {
 
   const body = req.body || {};
   const question = clip(body.message, MAX_QUESTION);
+  const language = body.lang === 'en' ? 'English' : 'Filipino (Tagalog)';
   if (!question) return res.status(400).json({ error: 'Walang tanong' });
 
   const history = (Array.isArray(body.history) ? body.history : [])
@@ -88,7 +89,7 @@ export default async function handler(req, res) {
         systemInstruction: { parts: [{ text: SYSTEM }] },
         contents: [
           ...history,
-          { role: 'user', parts: [{ text: `<app_context>${context}</app_context>\n\nTanong: ${question}` }] },
+          { role: 'user', parts: [{ text: `<app_context>${context}</app_context>\n\nReply language: ${language}\n\nQuestion: ${question}` }] },
         ],
         generationConfig: { temperature: 0.4, maxOutputTokens: MAX_OUTPUT_TOKENS },
       }),

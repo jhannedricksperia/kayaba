@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { searchPlaces } from '../lib/weather.js';
 import { useLive } from '../lib/live.jsx';
+import { useT } from '../lib/i18n.jsx';
 
 const QUICK = [
   { name: 'Manila', admin: 'Metro Manila', lat: 14.5995, lon: 120.9842 },
@@ -19,6 +20,7 @@ const SpeechRecognition = typeof window !== 'undefined' ? window.SpeechRecogniti
 
 export default function PlaceSearch() {
   const { place, setPlace } = useLive();
+  const { t } = useT();
   const [q, setQ] = useState('');
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
@@ -60,20 +62,20 @@ export default function PlaceSearch() {
   };
 
   const useMyLocation = () => {
-    if (!navigator.geolocation) return setNote('Hindi sinusuportahan ng browser na ito ang lokasyon.');
-    setNote('Hinahanap ang lokasyon mo…');
+    if (!navigator.geolocation) return setNote(t('Hindi sinusuportahan ng browser na ito ang lokasyon.', 'This browser does not support location.'));
+    setNote(t('Hinahanap ang lokasyon mo…', 'Finding your location…'));
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setPlace({ name: 'Your location', admin: '', lat: pos.coords.latitude, lon: pos.coords.longitude, source: 'gps' });
         setNote('');
         setPanel(false);
       },
-      () => setNote('Hindi pinayagan ang lokasyon. Payagan ito sa settings ng browser.')
+      () => setNote(t('Hindi pinayagan ang lokasyon. Payagan ito sa settings ng browser.', 'Location was blocked. Allow it in your browser settings.'))
     );
   };
 
   const toggleVoice = () => {
-    if (!SpeechRecognition) return setNote('Hindi gumagana ang voice search sa browser na ito. Subukan ang Chrome o Edge.');
+    if (!SpeechRecognition) return setNote(t('Hindi gumagana ang voice search sa browser na ito. Subukan ang Chrome o Edge.', 'Voice search does not work in this browser. Try Chrome or Edge.'));
     if (listening) {
       recRef.current?.stop();
       return;
@@ -84,7 +86,7 @@ export default function PlaceSearch() {
     rec.maxAlternatives = 1;
     rec.onstart = () => {
       setListening(true);
-      setNote('Nakikinig… sabihin ang pangalan ng lugar.');
+      setNote(t('Nakikinig… sabihin ang pangalan ng lugar.', 'Listening… say the name of a place.'));
     };
     rec.onresult = (e) => {
       const text = e.results[0][0].transcript.replace(/[.,]$/, '');
@@ -93,7 +95,7 @@ export default function PlaceSearch() {
       setNote('');
     };
     rec.onerror = (e) =>
-      setNote(e.error === 'not-allowed' ? 'Hindi pinayagan ang microphone.' : 'Hindi kita narinig. Subukan ulit.');
+      setNote(e.error === 'not-allowed' ? t('Hindi pinayagan ang microphone.', 'Microphone access was blocked.') : t('Hindi kita narinig. Subukan ulit.', "I didn't catch that. Try again."));
     rec.onend = () => setListening(false);
     recRef.current = rec;
     rec.start();
@@ -107,7 +109,7 @@ export default function PlaceSearch() {
           className="flex-1 min-w-0 bg-transparent border-0 outline-none px-2.5 font-headline-sm text-body-md text-primary font-bold placeholder-on-surface-variant truncate"
           type="text"
           value={q}
-          placeholder="Maghanap ng lugar, kalye o barangay…"
+          placeholder={t('Maghanap ng lugar, kalye o barangay…', 'Search a place, street or barangay…')}
           onChange={(e) => {
             setQ(e.target.value);
             setOpen(true);
@@ -129,7 +131,7 @@ export default function PlaceSearch() {
         <button
           type="button"
           aria-label="Filter locations"
-          title="Mga lugar"
+          title={t('Mga lugar', 'Places')}
           aria-expanded={panel}
           onClick={() => setPanel((v) => !v)}
           className={`w-9 h-9 flex-shrink-0 rounded-full flex items-center justify-center active:scale-95 transition-all shadow-sm ${
@@ -150,11 +152,11 @@ export default function PlaceSearch() {
             className="w-full flex items-center gap-2 text-left px-3 py-2.5 rounded-xl bg-secondary-container/40 font-label-badge text-[13px] text-primary font-bold mb-1"
           >
             <span className="material-symbols-outlined text-[18px]">my_location</span>
-            Gamitin ang kasalukuyang lokasyon
+            {t('Gamitin ang kasalukuyang lokasyon', 'Use my current location')}
           </button>
           {quick.length > 0 && (
             <p className="font-label-badge text-[11px] uppercase text-on-surface-variant px-3 pt-2 pb-1">
-              {needle ? "Mga lugar" : "Mga mungkahi"}
+              {needle ? t('Mga lugar', 'Places') : t('Mga mungkahi', 'Suggestions')}
             </p>
           )}
           {quick.map((p) => (
@@ -173,7 +175,7 @@ export default function PlaceSearch() {
           ))}
           {needle.length >= 2 && (
             <p className="font-label-badge text-[11px] uppercase text-on-surface-variant px-3 pt-2 pb-1">
-              {searching ? "Naghahanap…" : extra.length ? "Iba pang resulta" : ""}
+              {searching ? t('Naghahanap…', 'Searching…') : extra.length ? t('Iba pang resulta', 'More results') : ''}
             </p>
           )}
           {extra.map((r) => (
@@ -191,7 +193,7 @@ export default function PlaceSearch() {
             </button>
           ))}
           {needle.length >= 2 && !searching && quick.length === 0 && extra.length === 0 && (
-            <p className="font-body-sm text-[13px] text-on-surface-variant px-3 py-2">Walang nahanap. Subukan ang ibang pangalan.</p>
+            <p className="font-body-sm text-[13px] text-on-surface-variant px-3 py-2">{t('Walang nahanap. Subukan ang ibang pangalan.', 'Nothing found. Try another name.')}</p>
           )}
         </div>
       )}
@@ -204,7 +206,7 @@ export default function PlaceSearch() {
             className="w-full flex items-center gap-2 bg-secondary-container text-primary font-label-badge text-[13px] font-bold px-3 py-2.5 rounded-xl active:scale-[0.98] transition-transform"
           >
             <span className="material-symbols-outlined text-[18px]">my_location</span>
-            Gamitin ang kasalukuyang lokasyon
+            {t('Gamitin ang kasalukuyang lokasyon', 'Use my current location')}
           </button>
           <p className="font-label-badge text-[11px] uppercase text-on-surface-variant mt-3 mb-1.5 px-1">Mga lugar</p>
           <div className="flex flex-wrap gap-1.5">

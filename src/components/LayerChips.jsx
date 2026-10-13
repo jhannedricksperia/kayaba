@@ -1,12 +1,14 @@
 import HScroll from './HScroll.jsx';
+import { useT } from '../lib/i18n.jsx';
 
 const CHIPS = [
-  { key: 'flood', label: 'Flood Depth', icon: 'water' },
-  { key: 'water', label: 'Mga Ilog', icon: 'waves' },
-  { key: 'shelters', label: 'Evacuation Center', icon: 'night_shelter' },
+  { key: 'flood', tl: 'Lalim ng Baha', en: 'Flood Depth', icon: 'water' },
+  { key: 'water', tl: 'Mga Ilog', en: 'Rivers', icon: 'waves' },
+  { key: 'shelters', tl: 'Evacuation Center', en: 'Evacuation Centers', icon: 'night_shelter' },
 ];
 
 export default function LayerChips({ layers, onChange }) {
+  const { t } = useT();
   return (
     <HScroll className="items-center gap-2 py-2.5">
       {CHIPS.map((c) => {
@@ -24,7 +26,7 @@ export default function LayerChips({ layers, onChange }) {
             }`}
           >
             <span className="material-symbols-outlined text-[16px]">{c.icon}</span>
-            {c.label}
+            {t(c.tl, c.en)}
           </button>
         );
       })}

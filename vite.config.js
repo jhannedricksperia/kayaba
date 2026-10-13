@@ -9,7 +9,9 @@ import react from '@vitejs/plugin-react';
 function localApi(env) {
   const attach = (server) => {
     server.middlewares.use('/api', async (req, res) => {
-      const name = (req.url || '').split('?')[0].replace(/^\//, '');
+      const [path, qs = ''] = (req.url || '').split('?');
+      const name = path.replace(/^\//, '');
+      const query = Object.fromEntries(new URLSearchParams(qs));
       const file = resolve('api', `${name}.js`);
       if (!/^[a-z0-9-]+$/i.test(name) || !existsSync(file)) {
         res.statusCode = 404;
@@ -31,13 +33,16 @@ function localApi(env) {
           res.statusCode = code;
           return shim;
         },
+        setHeader(name, value) {
+          res.setHeader(name, value);
+        },
         json(value) {
           res.setHeader('Content-Type', 'application/json');
           res.end(JSON.stringify(value));
         },
       };
       try {
-        await handler({ method: req.method, body, headers: req.headers, socket: req.socket }, shim);
+        await handler({ method: req.method, body, query, headers: req.headers, socket: req.socket }, shim);
       } catch (e) {
         res.statusCode = 500;
         res.end('Server error');

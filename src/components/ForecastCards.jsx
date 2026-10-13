@@ -1,27 +1,29 @@
 import { classify, formatHour } from '../lib/weather.js';
 import { useLive } from '../lib/live.jsx';
+import { useT } from '../lib/i18n.jsx';
 
 const BAR = { safe: 'bg-secondary-container', caution: 'bg-secondary', danger: 'bg-primary-container' };
 
 export default function ForecastCards() {
   const { data, error } = useLive();
+  const { t } = useT();
   if (!data) {
     return (
       <p className="font-body-sm text-on-surface-variant px-1">
-        {error ? `Forecast unavailable: ${error}` : 'Kinukuha ang pinakabagong forecast…'}
+        {error ? `${t('Hindi ma-load ang forecast', 'Forecast unavailable')}: ${error}` : t('Kinukuha ang pinakabagong forecast…', 'Getting the latest forecast…')}
       </p>
     );
   }
   const peakTime = data.peak.time;
   return data.steps.map((s, i) => {
     const status = classify(s.depth);
-    const isPeak = s.time === peakTime && s.depth >= 0.1;
+    const isPeak = s.time === peakTime && s.depth >= 0.15;
     const prev = i > 0 ? data.steps[i - 1].depth : s.depth;
-    let trend = 'Pareho lang';
+    let trend = t('Pareho lang', 'Steady');
     if (isPeak) trend = status.label;
-    else if (s.depth < 0.1) trend = 'Kaya pa!';
-    else if (s.depth > prev) trend = 'Tumataas';
-    else if (s.depth < prev) trend = 'Bumababa';
+    else if (s.depth < 0.15) trend = 'Kaya pa!';
+    else if (s.depth > prev) trend = t('Tumataas', 'Rising');
+    else if (s.depth < prev) trend = t('Bumababa', 'Falling');
     return (
       <div
         key={s.time}
@@ -33,11 +35,11 @@ export default function ForecastCards() {
       >
         {isPeak && (
           <div className="bg-secondary-container px-2 py-0.5 rounded-full font-label-badge text-[9px] text-primary font-bold uppercase tracking-wider mb-0.5">
-            Peak
+            {t('Pinakamataas', 'Peak')}
           </div>
         )}
         <span className="font-label-badge text-[12px] text-on-surface-variant font-bold">
-          {i === 0 ? 'Ngayon' : formatHour(s.time)}
+          {i === 0 ? t('Ngayon', 'Now') : formatHour(s.time)}
         </span>
         <div className="my-2 flex flex-col items-center">
           <span className="material-symbols-outlined text-secondary text-[26px]">{s.icon}</span>

@@ -16,7 +16,7 @@ const BADGES = {
 const ACTIVE = ['bg-secondary-container', 'text-primary', 'shadow-[0_4px_12px_rgba(0,227,253,0.35)]', 'font-bold'];
 const IDLE = ['bg-surface-container', 'text-on-surface-variant'];
 
-function render(depth, badgeType, sub) {
+function render(depth, badgeType, sub, sceneDepth = depth) {
   const depthNumber = document.getElementById('depth-number');
   const depthSubtext = document.getElementById('depth-subtext');
   const statusBadge = document.getElementById('status-badge');
@@ -29,8 +29,8 @@ function render(depth, badgeType, sub) {
     statusBadge.className = b.cls;
     statusBadge.innerHTML = b.html;
   }
-  window.__lastDepth = depth;
-  if (window.__setFloodLevel) window.__setFloodLevel(depth);
+  window.__lastDepth = sceneDepth; // the 3D scene shows the street right now, the number shows the 24 h peak
+  if (window.__setFloodLevel) window.__setFloodLevel(sceneDepth);
 }
 
 export default function init() {
@@ -48,12 +48,12 @@ export default function init() {
   });
 
   // Called by React whenever the live forecast changes.
-  window.__applyLiveDepth = (depth, badgeType, sub) => {
+  window.__applyLiveDepth = (depth, badgeType, sub, sceneDepth) => {
     stageButtons.forEach((b) => {
       b.classList.remove(...ACTIVE);
       b.classList.add(...IDLE);
     });
-    render(depth, badgeType, sub);
+    render(depth, badgeType, sub, sceneDepth);
   };
 
   const timeTabs = document.querySelectorAll('.time-tab-btn');

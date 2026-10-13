@@ -7,6 +7,8 @@ import About from './screens/About.jsx';
 import { LiveProvider } from './lib/live.jsx';
 import BottomNav from './components/BottomNav.jsx';
 import ChatWidget from './components/ChatWidget.jsx';
+import LangToggle from './components/LangToggle.jsx';
+import { LangProvider } from './lib/i18n.jsx';
 
 const SCREENS = { home: Home, map: MapScreen, forecast: Forecast, alerts: Alerts, about: About };
 
@@ -35,10 +37,13 @@ export default function App() {
 
   const Screen = SCREENS[screen];
   return (
-    <LiveProvider>
-      <Screen key={screen} go={go} />
-      <BottomNav active={screen} go={go} />
-      <ChatWidget />
-    </LiveProvider>
+    <LangProvider>
+      <LiveProvider>
+        <Screen key={screen} go={go} />
+        <BottomNav active={screen} go={go} />
+        <LangToggle />
+        <ChatWidget />
+      </LiveProvider>
+    </LangProvider>
   );
 }

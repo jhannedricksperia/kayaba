@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLive } from '../lib/live.jsx';
+import { useT } from '../lib/i18n.jsx';
 import { classify, describeDepth, describeRain, formatHour } from '../lib/weather.js';
 
 const TONE = {
@@ -7,12 +8,14 @@ const TONE = {
   caution: 'bg-surface-container-high text-primary',
   danger: 'bg-primary text-secondary-container',
 };
+const ORDER = ['safe', 'caution', 'danger'];
 
-function buildAlerts(live) {
+function buildAlerts(live, t, lang) {
   const { data, ai, terrain } = live;
   const out = [];
   const peak = data.peak;
   const status = classify(peak.depth);
+  const aiSource = t('Tantiya ng AI', 'AI estimate');
 
   out.push({
     key: 'flood',
@@ -20,11 +23,17 @@ function buildAlerts(live) {
     badge: `${status.label} • ${peak.depth.toFixed(1)} m`,
     icon: 'flood',
     title:
-      peak.depth >= 0.1
-        ? `Maaaring umabot sa ${peak.depth.toFixed(1)} m ang baha mga ${formatHour(peak.time)}`
-        : 'Walang inaasahang baha sa susunod na 24 oras',
-    body: `Sa ngayon: ${data.nowDepth.toFixed(1)} m. ${describeDepth(peak.depth)}.`,
-    source: ai.status === 'ok' ? 'AI estimate' : 'Kalkulasyon (taas ng lugar at ulan)',
+      peak.depth >= 0.15
+        ? t(
+            `Maaaring umabot sa ${peak.depth.toFixed(1)} m ang baha mga ${formatHour(peak.time)}`,
+            `Floodwater could reach ${peak.depth.toFixed(1)} m around ${formatHour(peak.time)}`
+          )
+        : t('Walang inaasahang baha sa susunod na 24 oras', 'No flooding expected in the next 24 hours'),
+    body: t(
+      `Sa ngayon: ${data.nowDepth.toFixed(1)} m. ${describeDepth(peak.depth, lang)}.`,
+      `Right now: ${data.nowDepth.toFixed(1)} m. ${describeDepth(peak.depth, lang)}.`
+    ),
+    source: ai.status === 'ok' ? aiSource : t('Kalkulasyon (taas ng lugar at ulan)', 'Calculation (elevation and rainfall)'),
   });
 
   const maxMm = Math.max(0, ...data.steps.map((s) => s.mm));
@@ -32,10 +41,16 @@ function buildAlerts(live) {
     out.push({
       key: 'rain',
       level: data.rainNow >= 7.6 || maxMm >= 60 ? 'danger' : 'caution',
-      badge: describeRain(data.rainNow),
+      badge: describeRain(data.rainNow, lang),
       icon: 'rainy',
-      title: `Umuulan ng ${data.rainNow.toFixed(1)} mm/h ngayon. Hanggang ${maxMm.toFixed(0)} mm ang inaasahan sa loob ng 3 oras.`,
-      body: 'Mabilis tumataas ang tubig sa mabababang lugar kapag tuloy-tuloy ang ulan.',
+      title: t(
+        `Umuulan ng ${data.rainNow.toFixed(1)} mm/h ngayon. Hanggang ${maxMm.toFixed(0)} mm ang inaasahan sa loob ng 3 oras.`,
+        `Raining ${data.rainNow.toFixed(1)} mm/h now. Up to ${maxMm.toFixed(0)} mm expected within 3 hours.`
+      ),
+      body: t(
+        'Mabilis tumataas ang tubig sa mabababang lugar kapag tuloy-tuloy ang ulan.',
+        'Water rises quickly in low-lying areas when the rain keeps falling.'
+      ),
       source: 'Open-Meteo forecast',
     });
   }
@@ -44,10 +59,16 @@ function buildAlerts(live) {
     out.push({
       key: 'wind',
       level: data.signal >= 3 ? 'danger' : 'caution',
-      badge: data.signal > 0 ? `Signal #${data.signal} (est.)` : 'Malakas na hangin',
+      badge: data.signal > 0 ? `Signal #${data.signal} (est.)` : t('Malakas na hangin', 'Strong wind'),
       icon: 'air',
-      title: `Malakas na hangin, hanggang ${data.maxWind} km/h sa susunod na 24 oras`,
-      body: `Bugso ngayon: ${data.gustNow} km/h. Tantiya lang ang signal mula sa forecast at hindi galing sa opisyal na bulletin.`,
+      title: t(
+        `Malakas na hangin, hanggang ${data.maxWind} km/h sa susunod na 24 oras`,
+        `Strong wind, up to ${data.maxWind} km/h in the next 24 hours`
+      ),
+      body: t(
+        `Bugso ngayon: ${data.gustNow} km/h. Tantiya lang ang signal mula sa forecast at hindi galing sa opisyal na bulletin.`,
+        `Gusts now: ${data.gustNow} km/h. The signal is only an estimate from the forecast, not from an official bulletin.`
+      ),
       source: 'Open-Meteo forecast',
     });
   }
@@ -56,11 +77,11 @@ function buildAlerts(live) {
     out.push({
       key: 'ai',
       level: ai.risk,
-      badge: `AI • ${ai.confidence} confidence`,
+      badge: `AI • ${ai.confidence}`,
       icon: 'auto_awesome',
       title: ai.headline,
       body: ai.advice.join(' • '),
-      source: 'AI estimate',
+      source: aiSource,
     });
   }
 
@@ -68,11 +89,17 @@ function buildAlerts(live) {
     out.push({
       key: 'terrain',
       level: 'caution',
-      badge: 'Mababang lugar',
+      badge: t('Mababang lugar', 'Low ground'),
       icon: 'landscape',
-      title: `Mas mababa nang ${terrain.belowMean.toFixed(1)} m ang lugar na ito kaysa sa paligid`,
-      body: 'Dito kasi naiipon ang tubig mula sa mas mataas na bahagi, kaya mag-ingat kahit katamtaman lang ang ulan.',
-      source: 'Datos ng taas ng lugar',
+      title: t(
+        `Mas mababa nang ${terrain.belowMean.toFixed(1)} m ang lugar na ito kaysa sa paligid`,
+        `This spot is ${terrain.belowMean.toFixed(1)} m lower than its surroundings`
+      ),
+      body: t(
+        'Dito kasi naiipon ang tubig mula sa mas mataas na bahagi, kaya mag-ingat kahit katamtaman lang ang ulan.',
+        'Water from higher ground collects here, so be careful even with moderate rain.'
+      ),
+      source: t('Datos ng taas ng lugar', 'Elevation data'),
     });
   }
   return out;
@@ -80,6 +107,7 @@ function buildAlerts(live) {
 
 export default function LiveAlerts() {
   const live = useLive();
+  const { t, lang } = useT();
   const { data, error, place } = live;
   const [speaking, setSpeaking] = useState(false);
   useEffect(() => () => window.speechSynthesis?.cancel(), []);
@@ -87,12 +115,14 @@ export default function LiveAlerts() {
   if (!data) {
     return (
       <div className="bg-surface-container-lowest rounded-lg p-5 text-on-surface-variant font-body-sm">
-        {error ? `Hindi ma-load ang forecast: ${error}` : 'Kinukuha ang pinakabagong babala…'}
+        {error
+          ? `${t('Hindi ma-load ang forecast', 'Could not load the forecast')}: ${error}`
+          : t('Kinukuha ang pinakabagong babala…', 'Getting the latest alerts…')}
       </div>
     );
   }
 
-  const alerts = buildAlerts(live);
+  const alerts = buildAlerts(live, t, lang);
   const speak = () => {
     if (!('speechSynthesis' in window)) return;
     if (speaking) {
@@ -102,13 +132,13 @@ export default function LiveAlerts() {
     }
     const text = alerts.map((a) => `${a.title}. ${a.body}`).join(' ');
     const u = new SpeechSynthesisUtterance(`${place.name}. ${text}`);
-    u.lang = 'fil-PH';
+    u.lang = lang === 'en' ? 'en-PH' : 'fil-PH';
     u.onend = () => setSpeaking(false);
     u.onerror = () => setSpeaking(false);
     setSpeaking(true);
     window.speechSynthesis.speak(u);
   };
-  const top = alerts.reduce((a, b) => (['safe', 'caution', 'danger'].indexOf(b.level) > ['safe', 'caution', 'danger'].indexOf(a.level) ? b : a), alerts[0]);
+  const top = alerts.reduce((a, b) => (ORDER.indexOf(b.level) > ORDER.indexOf(a.level) ? b : a), alerts[0]);
 
   return (
     <>
@@ -119,7 +149,9 @@ export default function LiveAlerts() {
           </span>
           <div className="min-w-0">
             <div className="font-headline-sm text-headline-sm text-secondary-container">{classify(data.peak.depth).label}</div>
-            <div className="font-body-sm text-[13px] text-on-primary/80 truncate">{place.name} • pinakabagong forecast</div>
+            <div className="font-body-sm text-[13px] text-on-primary/80 truncate">
+              {place.name} • {t('pinakabagong forecast', 'latest forecast')}
+            </div>
           </div>
         </div>
         <button
@@ -129,19 +161,27 @@ export default function LiveAlerts() {
         >
           <span className="flex items-center gap-2 font-headline-sm text-[15px]">
             <span className="material-symbols-outlined text-secondary-container">{speaking ? 'stop_circle' : 'volume_up'}</span>
-            {speaking ? 'Itigil' : 'Pakinggan ang babala'}
+            {speaking ? t('Itigil', 'Stop') : t('Pakinggan ang babala', 'Listen to the alerts')}
           </span>
-          <span className="font-label-badge text-[11px] bg-secondary-container/20 text-secondary-container px-2 py-0.5 rounded-full">TL</span>
+          <span className="font-label-badge text-[11px] bg-secondary-container/20 text-secondary-container px-2 py-0.5 rounded-full">
+            {lang === 'en' ? 'EN' : 'TL'}
+          </span>
         </button>
         <p className="mt-3 font-body-sm text-body-sm text-on-primary/90">
-          Tantiya lang ito at hindi opisyal na babala. Sundin ang abiso ng PAGASA, NDRRMC, at ng inyong LGU o barangay.
+          {t(
+            'Tantiya lang ito at hindi opisyal na babala. Sundin ang abiso ng PAGASA, NDRRMC, at ng inyong LGU o barangay.',
+            'This is an estimate, not an official warning. Follow advisories from PAGASA, NDRRMC, and your LGU or barangay.'
+          )}
         </p>
       </div>
 
       <div className="bg-surface-container-lowest rounded-xl p-5 shadow-[0_8px_24px_-4px_rgba(15,43,72,0.07)] flex flex-col gap-3">
-        <h3 className="font-headline-sm text-headline-sm text-primary">Opisyal na impormasyon</h3>
+        <h3 className="font-headline-sm text-headline-sm text-primary">{t('Opisyal na impormasyon', 'Official information')}</h3>
         <p className="font-body-sm text-body-sm text-on-surface-variant">
-          Galing sa weather model ng Open-Meteo ang mga numero dito, hindi sa PAGASA. Para sa opisyal na babala, bisitahin ang:
+          {t(
+            'Galing sa weather model ng Open-Meteo ang mga numero dito, hindi sa PAGASA. Para sa opisyal na babala, bisitahin ang:',
+            'The numbers here come from the Open-Meteo weather model, not PAGASA. For official warnings, visit:'
+          )}
         </p>
         <div className="flex flex-wrap gap-2">
           {[
@@ -170,7 +210,7 @@ export default function LiveAlerts() {
                 <span className="material-symbols-outlined text-[16px]">{a.icon}</span>
                 {a.badge}
               </span>
-              <span className="font-body-sm text-[12px] text-on-surface-variant">Ngayon</span>
+              <span className="font-body-sm text-[12px] text-on-surface-variant">{t('Ngayon', 'Now')}</span>
             </div>
             <h3 className="font-headline-sm text-headline-sm text-primary">{a.title}</h3>
             <p className="font-body-sm text-body-sm text-on-surface-variant">{a.body}</p>

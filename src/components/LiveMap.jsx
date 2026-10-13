@@ -5,6 +5,7 @@ import { useLive } from '../lib/live.jsx';
 import { fetchNearby } from '../lib/nearby.js';
 import { classify } from '../lib/weather.js';
 import { floodCells } from '../lib/terrain.js';
+import { useT } from '../lib/i18n.jsx';
 
 const COLORS = { safe: '#00daf3', caution: '#006875', danger: '#0f2b48' };
 const FLOOD_FILL = { safe: '#38bdf8', caution: '#1d6fd8', danger: '#0b2a6b' };
@@ -32,10 +33,13 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 
 export default function LiveMap({ stepIndex = 0, className = '', onNearby, layers = { flood: true, water: true, shelters: true } }) {
   const { place, setPlace, data, terrain } = useLive();
+  const { t } = useT();
   const host = useRef(null);
   const map = useRef(null);
   const layersRef = useRef({ flood: null, user: null, shelters: null, water: null });
   const [status, setStatus] = useState('');
+  const [pinMode, setPinMode] = useState(false);
+  const pinRef = useRef(false);
   const layers_ref = () => layersRef.current;
 
   // create the map once
@@ -50,6 +54,14 @@ export default function LiveMap({ stepIndex = 0, className = '', onNearby, layer
     layersRef.current.water = L.layerGroup().addTo(m);
     layersRef.current.shelters = L.layerGroup().addTo(m);
     layersRef.current.user = L.layerGroup().addTo(m);
+    // "pin a location": the next click on the map becomes the place we forecast for
+    m.on('click', (e) => {
+      if (!pinRef.current) return;
+      pinRef.current = false;
+      setPinMode(false);
+      m.getContainer().style.cursor = '';
+      dropPin(e.latlng.lat, e.latlng.lng);
+    });
     map.current = m;
     // container may have been laid out after creation
     const t = setTimeout(() => m.invalidateSize(), 100);
@@ -69,7 +81,7 @@ export default function LiveMap({ stepIndex = 0, className = '', onNearby, layer
   // nearby shelters + waterways (real OSM data)
   useEffect(() => {
     const ctrl = new AbortController();
-    setStatus('Loading nearby shelters…');
+    setStatus(t('Hinahanap ang mga evacuation center…', 'Loading nearby shelters…'));
     fetchNearby(place, ctrl.signal)
       .then((res) => {
         const { shelters, water } = layersRef.current;
@@ -84,11 +96,11 @@ export default function LiveMap({ stepIndex = 0, className = '', onNearby, layer
             .bindPopup(`<b>${esc(s.name)}</b><br>${esc(s.kind)} · ${s.distance} m away`)
             .addTo(shelters)
         );
-        setStatus(res.shelters.length ? '' : 'No mapped shelters nearby');
+        setStatus(res.shelters.length ? '' : t('Walang nakitang evacuation center sa malapit', 'No mapped shelters nearby'));
         if (onNearby) onNearby(res);
       })
       .catch((e) => {
-        if (e.name !== 'AbortError') setStatus('Shelter data unavailable');
+        if (e.name !== 'AbortError') setStatus(t('Hindi makuha ang mga evacuation center', 'Shelter data unavailable'));
       });
     return () => ctrl.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,8 +136,13 @@ export default function LiveMap({ stepIndex = 0, className = '', onNearby, layer
       // no terrain yet: a soft circle around the pin instead
       L.circle([place.lat, place.lon], { radius: 150 + depth * 500, stroke: false, fillColor: color, fillOpacity: 0.25 }).addTo(flood);
     }
-    L.marker([place.lat, place.lon], { icon: pinIcon(`Ikaw • ${depth.toFixed(1)} m`) }).addTo(user);
-  }, [data, terrain, stepIndex, place.lat, place.lon]);
+    L.marker([place.lat, place.lon], { icon: pinIcon(`${t('Ikaw', 'You')} • ${depth.toFixed(1)} m`), draggable: true })
+      .on('dragend', (e) => {
+        const p = e.target.getLatLng();
+        dropPin(p.lat, p.lng);
+      })
+      .addTo(user);
+  }, [data, terrain, stepIndex, place.lat, place.lon, t]);
 
   useEffect(() => {
     const m = map.current;
@@ -137,11 +154,33 @@ export default function LiveMap({ stepIndex = 0, className = '', onNearby, layer
     });
   }, [layers.flood, layers.water, layers.shelters]);
 
+  function dropPin(lat, lon) {
+    const pinned = { name: t('Naka-pin na lugar', 'Pinned location'), admin: '', lat, lon, source: 'pin' };
+    setPlace(pinned);
+    // best effort: give the pin a readable name
+    fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((j) => {
+        if (!j) return;
+        const name = j.locality || j.city;
+        if (name) setPlace({ ...pinned, name, admin: j.principalSubdivision || '' });
+      })
+      .catch(() => {});
+  }
+
+  const togglePin = () => {
+    const on = !pinRef.current;
+    pinRef.current = on;
+    setPinMode(on);
+    if (map.current) map.current.getContainer().style.cursor = on ? 'crosshair' : '';
+    setStatus(on ? t('I-click ang mapa kung saan mo gustong mag-pin', 'Click the map where you want to drop a pin') : '');
+  };
+
   const locate = () => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => setPlace({ name: 'Your location', admin: '', lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      () => setStatus('Location permission denied')
+      () => setStatus(t('Hindi pinayagan ang lokasyon', 'Location permission denied'))
     );
   };
 
@@ -151,10 +190,21 @@ export default function LiveMap({ stepIndex = 0, className = '', onNearby, layer
       <button
         type="button"
         onClick={locate}
-        title="Find my location"
+        title={t('Hanapin ang lokasyon ko', 'Find my location')}
         className="absolute z-[500] left-3 top-3 w-10 h-10 rounded-full bg-white text-secondary shadow-md flex items-center justify-center active:scale-90 transition-transform"
       >
         <span className="material-symbols-outlined text-[20px]">my_location</span>
+      </button>
+      <button
+        type="button"
+        onClick={togglePin}
+        aria-pressed={pinMode}
+        title={t('Mag-pin ng lugar sa mapa', 'Drop a pin on the map')}
+        className={`absolute z-[500] left-3 top-16 w-10 h-10 rounded-full shadow-md flex items-center justify-center active:scale-90 transition-all ${
+          pinMode ? 'bg-primary text-secondary-container' : 'bg-white text-secondary'
+        }`}
+      >
+        <span className="material-symbols-outlined text-[22px]">add_location_alt</span>
       </button>
       {status && (
         <div className="absolute z-[500] left-1/2 -translate-x-1/2 bottom-8 bg-white/95 text-primary font-label-badge text-[11px] px-3 py-1 rounded-full shadow">
@@ -162,9 +212,9 @@ export default function LiveMap({ stepIndex = 0, className = '', onNearby, layer
         </div>
       )}
       <div className="absolute z-[500] left-3 bottom-8 bg-white/95 rounded-2xl shadow px-2.5 py-1.5 flex items-center gap-2 font-label-badge text-[10px] text-primary">
-        <span className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-full" style={{ background: FLOOD_FILL.safe }} />Mababaw</span>
-        <span className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-full" style={{ background: FLOOD_FILL.caution }} />Mataas</span>
-        <span className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-full" style={{ background: FLOOD_FILL.danger }} />Malalim</span><span className="text-on-surface-variant">• tantiya lang</span>
+        <span className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-full" style={{ background: FLOOD_FILL.safe }} />{t('Mababaw', 'Shallow')}</span>
+        <span className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-full" style={{ background: FLOOD_FILL.caution }} />{t('Mataas', 'High')}</span>
+        <span className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-full" style={{ background: FLOOD_FILL.danger }} />{t('Malalim', 'Deep')}</span><span className="text-on-surface-variant">• {t('tantiya lang', 'estimate')}</span>
       </div>
     </div>
   );

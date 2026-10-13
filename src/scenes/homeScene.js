@@ -205,12 +205,12 @@ const rainSystem = new THREE.Points(rainGeo, rainMat);
 skyGroup.add(rainSystem);
 
 // --- STREET ENVIRONMENT & CUTE CARTOON COTTAGES ---
-const ground = new THREE.Mesh(new THREE.BoxGeometry(7, 0.3, 4), new THREE.MeshLambertMaterial({ color: 0x93c5fd }));
+const ground = new THREE.Mesh(new THREE.BoxGeometry(7, 0.3, 4), new THREE.MeshLambertMaterial({ color: 0xaeb8c2 }));
 ground.position.y = -0.15;
 ground.receiveShadow = true;
 scene.add(ground);
 
-const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(7, 0.16, 1.5), new THREE.MeshLambertMaterial({ color: 0xe0f2fe }));
+const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(7, 0.16, 1.5), new THREE.MeshLambertMaterial({ color: 0xdde2e7 }));
 sidewalk.position.set(0, 0.08, -1);
 sidewalk.receiveShadow = true;
 scene.add(sidewalk);
@@ -700,7 +700,7 @@ const setLevel = (d) => {
   waterMesh.position.y = floodY;
   marker.position.y = floodY + 0.05;
   // no flood -> dry street: no water plane, no swimming dog or buoy
-  const wet = d >= 0.1;
+  const wet = d >= 0.15;
   waterMesh.visible = wet;
   doggo.visible = wet;
   buoyGroup.visible = wet;

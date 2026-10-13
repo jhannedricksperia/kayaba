@@ -73,7 +73,7 @@ async function post(url, query) {
 // Ask every mirror at once; the first good answer wins.
 const run = (query) => Promise.any(ENDPOINTS.map((url) => post(url, query)));
 
-async function load(place) {
+async function direct(place) {
   const { lat, lon } = place;
   const near = `around:2500,${lat},${lon}`;
   const sheltersQuery = `[out:json][timeout:20];
@@ -133,6 +133,26 @@ function parse(elements, place) {
     if (!dup) unique.push(s);
   }
   return { shelters: unique.slice(0, 30), waterways };
+}
+
+async function viaApi(place) {
+  const res = await fetch(`/api/nearby?lat=${place.lat.toFixed(3)}&lon=${place.lon.toFixed(3)}`, {
+    signal: AbortSignal.timeout(30000),
+  });
+  const type = res.headers.get('content-type') || '';
+  if (!res.ok || !type.includes('application/json')) throw new Error('nearby api unavailable');
+  const json = await res.json();
+  const result = parse(json.elements || [], place);
+  result.sheltersFailed = Boolean(json.sheltersFailed);
+  return result;
+}
+
+async function load(place) {
+  try {
+    return await viaApi(place);
+  } catch {
+    return direct(place);
+  }
 }
 
 // Map and shelter list share one request per place.

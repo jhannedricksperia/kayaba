@@ -85,7 +85,7 @@ const lowlandFactor = (elev) => (elev < 5 ? 1.3 : elev < 15 ? 1 : elev < 40 ? 0.
 // `terrain` is the local-basin multiplier from terrain.js (1 = flat surroundings).
 export function depthFromRain(mm3h, elevation, terrain = 1) {
   const depth = +Math.min(2.5, mm3h * 0.012 * lowlandFactor(elevation) * terrain).toFixed(2);
-  return depth < 0.1 ? 0 : depth; // under 10 cm is just wet pavement
+  return depth < 0.15 ? 0 : depth; // under 15 cm is just wet pavement
 }
 
 // Re-derive depths once the surrounding terrain is known.
@@ -108,21 +108,23 @@ export function classify(depth) {
   return { key: 'danger', label: 'Hindi na kaya!' };
 }
 
-export function describeDepth(d) {
-  if (d < 0.1) return 'Dry streets • Walang baha';
-  if (d < 0.35) return 'Ankle-deep • All vehicles pass';
-  if (d < 0.65) return 'Knee-deep • Sedan risk';
-  if (d < 1.1) return 'Waist-deep • SUV only / Stalling';
-  if (d < 1.6) return 'Chest-deep • Impassable to all';
-  return 'Overhead • Evacuate immediately';
+export function describeDepth(d, lang = "tl") {
+  const en = lang === "en";
+  if (d < 0.15) return en ? "Dry streets" : "Tuyo ang kalsada";
+  if (d < 0.35) return en ? "Ankle-deep • All vehicles can pass" : "Hanggang bukung-bukong • Kayang daanan ng lahat ng sasakyan";
+  if (d < 0.65) return en ? "Knee-deep • Risky for sedans" : "Hanggang tuhod • Delikado sa sedan";
+  if (d < 1.1) return en ? "Waist-deep • SUVs only, engines may stall" : "Hanggang baywang • SUV lang, baka mamatay ang makina";
+  if (d < 1.6) return en ? "Chest-deep • Impassable" : "Hanggang dibdib • Hindi madadaanan";
+  return en ? "Overhead • Evacuate now" : "Lampas-tao • Lumikas na agad";
 }
 
-export function describeRain(mmh) {
-  if (mmh < 0.1) return 'No rain right now';
-  if (mmh < 2.5) return 'Light rain';
-  if (mmh < 7.6) return 'Moderate rain';
-  if (mmh < 50) return 'Heavy rain';
-  return 'Torrential downpour';
+export function describeRain(mmh, lang = "tl") {
+  const en = lang === "en";
+  if (mmh < 0.1) return en ? "No rain right now" : "Walang ulan ngayon";
+  if (mmh < 2.5) return en ? "Light rain" : "Manaka-nakang ulan";
+  if (mmh < 7.6) return en ? "Moderate rain" : "Katamtamang ulan";
+  if (mmh < 50) return en ? "Heavy rain" : "Malakas na ulan";
+  return en ? "Torrential downpour" : "Napakalakas na buhos ng ulan";
 }
 
 export function weatherIcon(code) {
@@ -195,6 +197,6 @@ export function formatHour(iso) {
 
 // Scene weather follows the forecast: rain wins, otherwise day or night at the location.
 export function sceneMode(data) {
-  if (data.rainNow >= 0.1 || data.weatherCode >= 51) return 'rain';
+  if (data.rainNow >= 0.5) return 'rain';
   return data.isDay ? 'day' : 'night';
 }
