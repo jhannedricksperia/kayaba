@@ -181,3 +181,24 @@ body {
   .kb-nav-pill { transition: none; }
   .kb-nav-icon-on, [data-screen] { animation: none; }
 }
+
+/* ---- full-screen live water gauge ---- */
+.kb-full {
+  position: fixed !important;
+  inset: 0;
+  z-index: 80;
+  border-radius: 0 !important;
+  padding: 1rem;
+  overflow: auto;
+  background: #f4faff;
+}
+.kb-full .h-\[320px\] { height: calc(100dvh - 9rem) !important; }
+
+/* chat button: right side, stacked above the "Evac Safe Zone" button */
+.kb-chat-btn { right: 1rem; bottom: 9.5rem; }
+@media (min-width: 520px) {
+  #root .kb-chat-btn { right: max(1.25rem, calc((100vw - var(--shell)) / 2 + 1.25rem)); }
+}
+@media (min-width: 768px) {
+  #root .kb-chat-btn { bottom: 10.5rem; }
+}

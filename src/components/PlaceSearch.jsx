@@ -25,6 +25,7 @@ export default function PlaceSearch() {
   const [panel, setPanel] = useState(false); // quick-pick filter panel
   const [listening, setListening] = useState(false);
   const [note, setNote] = useState('');
+  const [searching, setSearching] = useState(false);
   const recRef = useRef(null);
 
   useEffect(() => {
@@ -33,14 +34,22 @@ export default function PlaceSearch() {
       return undefined;
     }
     const ctrl = new AbortController();
+    setSearching(true);
     const t = setTimeout(() => {
-      searchPlaces(q.trim(), ctrl.signal).then(setResults).catch(() => {});
-    }, 300);
+      searchPlaces(q.trim(), ctrl.signal)
+        .then(setResults)
+        .catch(() => {})
+        .finally(() => setSearching(false));
+    }, 250);
     return () => {
       clearTimeout(t);
       ctrl.abort();
     };
   }, [q]);
+
+  const needle = q.trim().toLowerCase();
+  const quick = QUICK.filter((p) => !needle || `${p.name} ${p.admin}`.toLowerCase().includes(needle)).slice(0, needle ? 5 : 6);
+  const extra = results.filter((r) => !quick.some((p) => p.name.toLowerCase() === r.name.toLowerCase() && p.admin === r.admin));
 
   const pick = (p) => {
     setPlace({ ...p, source: 'search' });
@@ -51,20 +60,20 @@ export default function PlaceSearch() {
   };
 
   const useMyLocation = () => {
-    if (!navigator.geolocation) return setNote('Walang location support ang browser na ito.');
-    setNote('Hinahanap ang location mo…');
+    if (!navigator.geolocation) return setNote('Hindi sinusuportahan ng browser na ito ang lokasyon.');
+    setNote('Hinahanap ang lokasyon mo…');
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setPlace({ name: 'Your location', admin: '', lat: pos.coords.latitude, lon: pos.coords.longitude, source: 'gps' });
         setNote('');
         setPanel(false);
       },
-      () => setNote('Hindi pinayagan ang location. I-allow ito sa browser settings.')
+      () => setNote('Hindi pinayagan ang lokasyon. Payagan ito sa settings ng browser.')
     );
   };
 
   const toggleVoice = () => {
-    if (!SpeechRecognition) return setNote('Hindi supported ang voice search sa browser na ito. Subukan ang Chrome o Edge.');
+    if (!SpeechRecognition) return setNote('Hindi gumagana ang voice search sa browser na ito. Subukan ang Chrome o Edge.');
     if (listening) {
       recRef.current?.stop();
       return;
@@ -84,7 +93,7 @@ export default function PlaceSearch() {
       setNote('');
     };
     rec.onerror = (e) =>
-      setNote(e.error === 'not-allowed' ? 'Hindi pinayagan ang microphone.' : 'Hindi narinig. Subukan ulit.');
+      setNote(e.error === 'not-allowed' ? 'Hindi pinayagan ang microphone.' : 'Hindi kita narinig. Subukan ulit.');
     rec.onend = () => setListening(false);
     recRef.current = rec;
     rec.start();
@@ -98,7 +107,7 @@ export default function PlaceSearch() {
           className="flex-1 min-w-0 bg-transparent border-0 outline-none px-2.5 font-headline-sm text-body-md text-primary font-bold placeholder-on-surface-variant truncate"
           type="text"
           value={q}
-          placeholder={`${place.name}${place.admin ? `, ${place.admin}` : ''}`}
+          placeholder="Maghanap ng lugar, kalye o barangay…"
           onChange={(e) => {
             setQ(e.target.value);
             setOpen(true);
@@ -133,21 +142,58 @@ export default function PlaceSearch() {
 
       {note && <p className="absolute left-2 top-full mt-1 z-40 font-body-sm text-[12px] text-on-surface-variant">{note}</p>}
 
-      {open && results.length > 0 && (
-        <ul className="absolute left-0 right-0 top-full mt-3 z-50 bg-surface-container-lowest rounded-2xl shadow-[0_12px_30px_-6px_rgba(15,43,72,0.18)] p-1.5">
-          {results.map((r) => (
-            <li key={`${r.lat},${r.lon}`}>
-              <button
-                type="button"
-                className="w-full text-left px-3 py-2 rounded-xl hover:bg-surface-container font-label-badge text-[13px] text-primary"
-                onMouseDown={() => pick(r)}
-              >
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-3 z-50 bg-surface-container-lowest rounded-2xl shadow-[0_12px_30px_-6px_rgba(15,43,72,0.18)] p-2 max-h-[22rem] overflow-y-auto">
+          <button
+            type="button"
+            onMouseDown={useMyLocation}
+            className="w-full flex items-center gap-2 text-left px-3 py-2.5 rounded-xl bg-secondary-container/40 font-label-badge text-[13px] text-primary font-bold mb-1"
+          >
+            <span className="material-symbols-outlined text-[18px]">my_location</span>
+            Gamitin ang kasalukuyang lokasyon
+          </button>
+          {quick.length > 0 && (
+            <p className="font-label-badge text-[11px] uppercase text-on-surface-variant px-3 pt-2 pb-1">
+              {needle ? "Mga lugar" : "Mga mungkahi"}
+            </p>
+          )}
+          {quick.map((p) => (
+            <button
+              key={p.name}
+              type="button"
+              onMouseDown={() => pick(p)}
+              className="w-full text-left px-3 py-2 rounded-xl hover:bg-surface-container font-label-badge text-[13px] text-primary flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[18px] text-secondary">location_on</span>
+              <span>
+                {p.name}
+                <span className="block text-[11px] text-on-surface-variant font-normal">{p.admin}</span>
+              </span>
+            </button>
+          ))}
+          {needle.length >= 2 && (
+            <p className="font-label-badge text-[11px] uppercase text-on-surface-variant px-3 pt-2 pb-1">
+              {searching ? "Naghahanap…" : extra.length ? "Iba pang resulta" : ""}
+            </p>
+          )}
+          {extra.map((r) => (
+            <button
+              key={`${r.lat},${r.lon}`}
+              type="button"
+              onMouseDown={() => pick(r)}
+              className="w-full text-left px-3 py-2 rounded-xl hover:bg-surface-container font-label-badge text-[13px] text-primary flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[18px] text-secondary">location_on</span>
+              <span>
                 {r.name}
                 {r.admin && <span className="block text-[11px] text-on-surface-variant font-normal">{r.admin}</span>}
-              </button>
-            </li>
+              </span>
+            </button>
           ))}
-        </ul>
+          {needle.length >= 2 && !searching && quick.length === 0 && extra.length === 0 && (
+            <p className="font-body-sm text-[13px] text-on-surface-variant px-3 py-2">Walang nahanap. Subukan ang ibang pangalan.</p>
+          )}
+        </div>
       )}
 
       {panel && (
@@ -158,7 +204,7 @@ export default function PlaceSearch() {
             className="w-full flex items-center gap-2 bg-secondary-container text-primary font-label-badge text-[13px] font-bold px-3 py-2.5 rounded-xl active:scale-[0.98] transition-transform"
           >
             <span className="material-symbols-outlined text-[18px]">my_location</span>
-            Gamitin ang current location
+            Gamitin ang kasalukuyang lokasyon
           </button>
           <p className="font-label-badge text-[11px] uppercase text-on-surface-variant mt-3 mb-1.5 px-1">Mga lugar</p>
           <div className="flex flex-wrap gap-1.5">

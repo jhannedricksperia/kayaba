@@ -8,7 +8,7 @@ export default function ForecastCards() {
   if (!data) {
     return (
       <p className="font-body-sm text-on-surface-variant px-1">
-        {error ? `Forecast unavailable: ${error}` : 'Loading live forecast…'}
+        {error ? `Forecast unavailable: ${error}` : 'Kinukuha ang pinakabagong forecast…'}
       </p>
     );
   }
@@ -17,11 +17,11 @@ export default function ForecastCards() {
     const status = classify(s.depth);
     const isPeak = s.time === peakTime && s.depth >= 0.1;
     const prev = i > 0 ? data.steps[i - 1].depth : s.depth;
-    let trend = 'Steady';
+    let trend = 'Pareho lang';
     if (isPeak) trend = status.label;
     else if (s.depth < 0.1) trend = 'Kaya pa!';
-    else if (s.depth > prev) trend = 'Rising';
-    else if (s.depth < prev) trend = 'Subsiding';
+    else if (s.depth > prev) trend = 'Tumataas';
+    else if (s.depth < prev) trend = 'Bumababa';
     return (
       <div
         key={s.time}
@@ -37,7 +37,7 @@ export default function ForecastCards() {
           </div>
         )}
         <span className="font-label-badge text-[12px] text-on-surface-variant font-bold">
-          {i === 0 ? 'Now' : formatHour(s.time)}
+          {i === 0 ? 'Ngayon' : formatHour(s.time)}
         </span>
         <div className="my-2 flex flex-col items-center">
           <span className="material-symbols-outlined text-secondary text-[26px]">{s.icon}</span>

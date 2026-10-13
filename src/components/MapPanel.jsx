@@ -15,7 +15,7 @@ function passability(depth) {
   if (depth < 0.3) return 'Karamihan ng sasakyan';
   if (depth < 0.5) return 'SUV / jeep / truck';
   if (depth < 0.7) return 'Truck lang';
-  return 'Walang makakadaan';
+  return 'Walang makadaraan';
 }
 
 const HOTLINES = [
@@ -31,7 +31,7 @@ export default function MapPanel({ stepIndex = 0 }) {
     const ctrl = new AbortController();
     setNear({ status: 'loading', items: [] });
     fetchNearby(place, ctrl.signal)
-      .then((r) => setNear({ status: 'ok', items: r.shelters.slice(0, 3) }))
+      .then((r) => setNear({ status: r.sheltersFailed ? 'error' : 'ok', items: r.shelters.slice(0, 3) }))
       .catch((e) => e.name !== 'AbortError' && setNear({ status: 'error', items: [] }));
     return () => ctrl.abort();
   }, [place.lat, place.lon]);
@@ -57,7 +57,7 @@ export default function MapPanel({ stepIndex = 0 }) {
             <div className="font-headline-sm text-body-md text-primary font-bold">{describeDepth(depth).split(' • ')[0]}</div>
           </div>
           <div className="bg-surface-container rounded-2xl p-3">
-            <div className="font-label-badge text-[11px] text-on-surface-variant uppercase">Pwedeng dumaan</div>
+            <div className="font-label-badge text-[11px] text-on-surface-variant uppercase">Puwedeng daanan</div>
             <div className="font-headline-sm text-body-md text-primary font-bold">{passability(depth)}</div>
           </div>
         </div>
@@ -66,12 +66,12 @@ export default function MapPanel({ stepIndex = 0 }) {
       <div className="bg-surface-container-lowest rounded-3xl p-5 shadow-[0_8px_24px_-4px_rgba(15,43,72,0.08)] flex flex-col gap-3">
         <div className="font-headline-sm text-body-lg text-primary font-bold flex items-center gap-2">
           <span className="material-symbols-outlined text-secondary">night_shelter</span>
-          Pinakamalapit na evacuation spots
+          Pinakamalapit na evacuation center
         </div>
         {near.status === 'loading' && <p className="font-body-sm text-on-surface-variant">Hinahanap…</p>}
         {near.status === 'error' && <p className="font-body-sm text-on-surface-variant">Hindi ma-load ngayon. Subukan ulit mamaya.</p>}
         {near.status === 'ok' && near.items.length === 0 && (
-          <p className="font-body-sm text-on-surface-variant">Walang naka-map na paaralan o hall sa malapit.</p>
+          <p className="font-body-sm text-on-surface-variant">Walang nakitang paaralan o hall sa malapit.</p>
         )}
         {near.items.map((s) => (
           <a
@@ -92,7 +92,7 @@ export default function MapPanel({ stepIndex = 0 }) {
           </a>
         ))}
         <p className="font-body-sm text-[12px] text-on-surface-variant">
-          Mula sa OpenStreetMap. Kumpirmahin sa barangay kung bukas bilang evacuation center.
+          Kadalasang ginagawang evacuation center ang malapit na public school, covered court, hall, convention center, o simbahan. Magtanong muna sa barangay kung bukas ito.
         </p>
       </div>
 

@@ -1,12 +1,14 @@
+import HScroll from './HScroll.jsx';
+
 const CHIPS = [
   { key: 'flood', label: 'Flood Depth', icon: 'water' },
   { key: 'water', label: 'Mga Ilog', icon: 'waves' },
-  { key: 'shelters', label: 'Open Shelters', icon: 'night_shelter' },
+  { key: 'shelters', label: 'Evacuation Center', icon: 'night_shelter' },
 ];
 
 export default function LayerChips({ layers, onChange }) {
   return (
-    <div className="flex items-center gap-2 overflow-x-auto py-2.5 no-scrollbar">
+    <HScroll className="items-center gap-2 py-2.5">
       {CHIPS.map((c) => {
         const on = layers[c.key];
         return (
@@ -26,6 +28,6 @@ export default function LayerChips({ layers, onChange }) {
           </button>
         );
       })}
-    </div>
+    </HScroll>
   );
 }

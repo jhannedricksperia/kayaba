@@ -3,8 +3,9 @@ import PlaceSearch from '../components/PlaceSearch.jsx';
 import ForecastCards from '../components/ForecastCards.jsx';
 import { useLive } from '../lib/live.jsx';
 import AiAssessment from '../components/AiAssessment.jsx';
+import HScroll from '../components/HScroll.jsx';
 import { NearbyShelters, ShareStatus } from '../components/HomeExtras.jsx';
-import LiveMap from '../components/MapView.jsx';
+import LiveMap from '../components/LiveMap.jsx';
 import TimeSteps from '../components/TimeSteps.jsx';
 import { classify, describeDepth, describeRain, formatHour, sceneMode } from '../lib/weather.js';
 import ThreeScene from '../components/ThreeScene.jsx';
@@ -13,7 +14,20 @@ import init from './scripts/home.js';
 export default function Home({ go }) {
   const live = useLive();
   const [mapStep, setMapStep] = useState(0);
+  const [gaugeFull, setGaugeFull] = useState(false);
   useEffect(() => { init(); }, []);
+  useEffect(() => {
+    // let the 3D canvas resize after the layout changes, and allow Esc to leave full screen
+    const t = setTimeout(() => window.dispatchEvent(new Event('resize')), 60);
+    document.body.style.overflow = gaugeFull ? 'hidden' : '';
+    const onKey = (e) => e.key === 'Escape' && setGaugeFull(false);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [gaugeFull]);
   useEffect(() => {
     if (!live.data || !window.__applyLiveDepth) return;
     const d = live.data.peak.depth;
@@ -83,7 +97,16 @@ export default function Home({ go }) {
               </span>
             </div>
           </section>
-          <section className="bg-surface-container-lowest rounded-3xl p-4 shadow-[0_12px_30px_-6px_rgba(15,43,72,0.08)] flex flex-col gap-3 relative overflow-hidden">
+          <section className={`bg-surface-container-lowest rounded-3xl p-4 shadow-[0_12px_30px_-6px_rgba(15,43,72,0.08)] flex flex-col gap-3 relative overflow-hidden ${gaugeFull ? 'kb-full' : ''}`}>
+            <button
+              type="button"
+              onClick={() => setGaugeFull((v) => !v)}
+              aria-label={gaugeFull ? 'Isara ang full screen' : 'Full screen'}
+              title={gaugeFull ? 'Isara' : 'Full screen'}
+              className="absolute z-30 top-[4.4rem] right-6 w-10 h-10 rounded-full bg-white/90 text-primary shadow-md flex items-center justify-center active:scale-90 transition-transform"
+            >
+              <span className="material-symbols-outlined text-[22px]">{gaugeFull ? 'fullscreen_exit' : 'fullscreen'}</span>
+            </button>
             <div className="flex items-center justify-between z-10">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-secondary animate-pulse"></span>
@@ -251,9 +274,7 @@ export default function Home({ go }) {
                 Next 24 hrs • 3-hr steps
               </span>
             </div>
-            <div className="flex gap-2.5 overflow-x-auto pb-2 pt-0.5 no-scrollbar -mx-margin-mobile px-margin-mobile">
-<ForecastCards />
-</div>
+            <HScroll className="gap-2.5 pb-2 pt-0.5"><ForecastCards /></HScroll>
           </section>
           <ShareStatus />
           <NearbyShelters />

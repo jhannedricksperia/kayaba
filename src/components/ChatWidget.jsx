@@ -9,7 +9,7 @@ const DAILY_LIMIT = 15;
 const COOLDOWN_MS = 4000;
 const STORE = 'kayaba.chat';
 
-const SUGGESTIONS = ['Kaya bang dumaan ang motor ngayon?', 'Ano ang dapat kong ihanda?', 'Saan ang pinakamalapit na evacuation?'];
+const SUGGESTIONS = ['Kaya bang dumaan ang motor ngayon?', 'Ano ang dapat kong ihanda?', 'Saan ang pinakamalapit na evacuation center?'];
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -28,7 +28,7 @@ export default function ChatWidget() {
   const { place, data, terrain } = useLive();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'model', text: 'Kumusta! Tanungin mo ako tungkol sa baha, ulan, at kung ano ang dapat gawin sa lugar mo.' },
+    { role: 'model', text: 'Kumusta! Puwede mo akong tanungin tungkol sa baha, ulan, at kung ano ang dapat gawin sa inyong lugar.' },
   ]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -106,7 +106,7 @@ export default function ChatWidget() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? 'Isara ang chat' : 'Buksan ang chat'}
-        className="fixed z-[60] left-4 bottom-24 md:bottom-6 w-14 h-14 rounded-full bg-primary text-secondary-container shadow-[0_12px_28px_rgba(15,43,72,0.35)] flex items-center justify-center active:scale-90 hover:scale-105 transition-transform"
+        className="kb-chat-btn fixed z-[60] w-14 h-14 rounded-full bg-primary text-secondary-container shadow-[0_12px_28px_rgba(15,43,72,0.35)] flex items-center justify-center active:scale-90 hover:scale-105 transition-transform"
       >
         <span className="material-symbols-outlined text-[28px]">{open ? 'close' : 'chat'}</span>
       </button>
@@ -122,7 +122,7 @@ export default function ChatWidget() {
               <span className="material-symbols-outlined text-secondary-container">smart_toy</span>
               <div>
                 <div className="font-headline-sm text-[15px] leading-tight">Kaya Ba? Assistant</div>
-                <div className="font-body-sm text-[11.5px] text-on-primary/70">{place.name} • {left} tanong na lang ngayong araw</div>
+                <div className="font-body-sm text-[11.5px] text-on-primary/70">{place.name} • {left} tanong pa ang natitira ngayong araw</div>
               </div>
             </div>
             <button type="button" onClick={() => setOpen(false)} aria-label="Isara" className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center">
@@ -143,7 +143,7 @@ export default function ChatWidget() {
                 {m.text}
               </div>
             ))}
-            {busy && <div className="self-start bg-surface-container text-on-surface-variant px-3.5 py-2.5 rounded-2xl text-[14px] animate-pulse">Nag-iisip…</div>}
+            {busy && <div className="self-start bg-surface-container text-on-surface-variant px-3.5 py-2.5 rounded-2xl text-[14px] animate-pulse">Sandali lang…</div>}
             {messages.length === 1 && (
               <div className="flex flex-wrap gap-2 mt-1">
                 {SUGGESTIONS.map((s) => (
@@ -174,7 +174,7 @@ export default function ChatWidget() {
                 maxLength={MAX_CHARS}
                 onChange={(e) => setInput(e.target.value)}
                 disabled={left === 0}
-                placeholder={left === 0 ? 'Naubos na ang tanong ngayong araw' : 'Magtanong tungkol sa baha…'}
+                placeholder={left === 0 ? 'Naubos na ang tanong mo para ngayong araw' : 'Magtanong tungkol sa baha…'}
                 className="flex-1 min-w-0 bg-surface-container rounded-full px-4 py-2.5 outline-none font-body-sm text-[14px] text-primary placeholder-on-surface-variant"
               />
               <button
@@ -187,7 +187,7 @@ export default function ChatWidget() {
               </button>
             </div>
             <p className="font-body-sm text-[11px] text-on-surface-variant px-1">
-              {input.length}/{MAX_CHARS} • AI na sagot, estimate lang. Para sa emergency, tumawag sa 911.
+              {input.length}/{MAX_CHARS} • Sagot ito ng AI at tantiya lang. Sa emergency, tumawag sa 911.
             </p>
           </form>
         </aside>

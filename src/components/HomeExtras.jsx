@@ -13,7 +13,7 @@ export function NearbyShelters() {
     const ctrl = new AbortController();
     setState({ status: 'loading', items: [] });
     fetchNearby(place, ctrl.signal)
-      .then((r) => setState({ status: 'ok', items: r.shelters.slice(0, 4) }))
+      .then((r) => setState({ status: r.sheltersFailed ? 'error' : 'ok', items: r.shelters.slice(0, 4) }))
       .catch((e) => e.name !== 'AbortError' && setState({ status: 'error', items: [] }));
     return () => ctrl.abort();
   }, [place.lat, place.lon]);
@@ -25,7 +25,7 @@ export function NearbyShelters() {
           <div className="w-8 h-8 rounded-full bg-secondary-container text-primary flex items-center justify-center">
             <span className="material-symbols-outlined text-[20px]">night_shelter</span>
           </div>
-          <span className="font-headline-sm text-body-lg font-bold text-on-primary">Pinakamalapit na Evacuation Spots</span>
+          <span className="font-headline-sm text-body-lg font-bold text-on-primary">Pinakamalapit na Evacuation Center</span>
         </div>
       </div>
 
@@ -34,7 +34,7 @@ export function NearbyShelters() {
         <p className="font-body-sm text-on-primary/80">Hindi ma-load ang mga lugar ngayon. Subukan ulit mamaya.</p>
       )}
       {state.status === 'ok' && state.items.length === 0 && (
-        <p className="font-body-sm text-on-primary/80">Walang naka-map na paaralan o hall sa malapit sa OpenStreetMap.</p>
+        <p className="font-body-sm text-on-primary/80">Walang nakitang paaralan o hall sa malapit sa OpenStreetMap.</p>
       )}
 
       <ul className="flex flex-col gap-2">
@@ -61,7 +61,7 @@ export function NearbyShelters() {
         ))}
       </ul>
       <p className="font-body-sm text-[11.5px] text-on-primary/70">
-        Mula sa OpenStreetMap. Kumpirmahin sa barangay kung bukas bilang evacuation center.
+        Kadalasang ginagawang evacuation center ang malapit na public school, covered court, hall, convention center, o simbahan. Magtanong muna sa barangay kung bukas ito.
       </p>
     </section>
   );
@@ -73,14 +73,14 @@ export function ShareStatus() {
 
   const share = async () => {
     const depth = data ? data.peak.depth : 0;
-    const text = `Kaya Ba? ${place.name}: ${classify(depth).label} Pinakamataas na baha sa susunod na 24 oras: ${depth.toFixed(1)} m (${describeDepth(depth).split(' • ')[0]}). Estimate lang.`;
+    const text = `Kaya Ba? ${place.name}: ${classify(depth).label} Pinakamataas na baha sa susunod na 24 oras: ${depth.toFixed(1)} m (${describeDepth(depth).split(' • ')[0]}). Tantiya lang ito.`;
     try {
       if (navigator.share) {
         await navigator.share({ title: 'Kaya Ba?', text, url: window.location.origin });
         return;
       }
       await navigator.clipboard.writeText(`${text} ${window.location.origin}`);
-      setNote('Na-copy na! I-paste sa group chat.');
+      setNote('Nakopya na! I-paste sa group chat.');
     } catch {
       setNote('Hindi ma-share dito.');
     }
@@ -95,7 +95,7 @@ export function ShareStatus() {
         </div>
         <div className="min-w-0">
           <h4 className="font-headline-sm text-body-md text-primary font-bold">Ipaalam sa mga kapitbahay</h4>
-          <p className="font-body-sm text-[12.5px] text-on-surface-variant">{note || 'I-share ang lagay ng baha sa lugar mo'}</p>
+          <p className="font-body-sm text-[12.5px] text-on-surface-variant">{note || 'Ibahagi ang lagay ng baha sa inyong lugar'}</p>
         </div>
       </div>
       <button

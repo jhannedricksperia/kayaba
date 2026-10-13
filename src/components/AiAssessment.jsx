@@ -20,13 +20,13 @@ export default function AiAssessment() {
         </div>
         {ai.status === 'ok' && (
           <span className={`font-label-badge text-[11px] px-2.5 py-1 rounded-full font-bold ${TONE[ai.risk] || TONE.caution}`}>
-            {ai.confidence} confidence
+            Tiwala: {{mataas:"mataas",medium:"katamtaman",high:"mataas",low:"mababa"}[ai.confidence] || ai.confidence}
           </span>
         )}
       </div>
 
       {ai.status === 'loading' && (
-        <p className="font-body-sm text-on-surface-variant">Sinusuri ang elevation at ulan…</p>
+        <p className="font-body-sm text-on-surface-variant">Tinitingnan ang taas ng lugar at ang ulan…</p>
       )}
 
       {ai.status === 'ok' && (
@@ -50,7 +50,7 @@ export default function AiAssessment() {
 
       {ai.status === 'unavailable' && (
         <p className="font-body-sm text-[13px] text-on-surface-variant">
-          Hindi available ang AI ngayon, kaya elevation-based formula ang ginagamit
+          Hindi magamit ang AI ngayon, kaya kalkulasyon batay sa taas ng lugar at dami ng ulan ang ginamit
           {data?.terrainFactor ? ` (terrain ×${data.terrainFactor})` : ''}.
         </p>
       )}
@@ -58,9 +58,9 @@ export default function AiAssessment() {
       {terrain && (
         <div className="grid grid-cols-3 gap-2 text-center">
           {[
-            ['Elevation', `${terrain.pointElevation} m`],
-            ['Vs paligid', `${terrain.belowMean > 0 ? '−' : '+'}${Math.abs(terrain.belowMean)} m`],
-            ['Relief 1.2 km', `${terrain.relief} m`],
+            ['Taas ng lugar', `${terrain.pointElevation} m`],
+            ['Kumpara sa paligid', `${terrain.belowMean > 0 ? '−' : '+'}${Math.abs(terrain.belowMean)} m`],
+            ['Taas-baba (1 km)', `${terrain.relief} m`],
           ].map(([k, v]) => (
             <div key={k} className="bg-surface-container rounded-2xl py-1.5">
               <div className="font-label-badge text-[10px] text-on-surface-variant uppercase">{k}</div>
@@ -70,8 +70,8 @@ export default function AiAssessment() {
         </div>
       )}
       <p className="font-body-sm text-[10px] text-on-surface-variant">
-        {ai.status === 'ok' ? `AI estimate (${ai.model}) batay sa elevation at forecast. ` : ''}
-        Estimate lang ito, hindi opisyal na babala.
+        {ai.status === 'ok' ? 'Tantiya ng AI batay sa taas ng lugar at forecast. ' : ''}
+        Tantiya lang ito at hindi opisyal na babala.
       </p>
     </section>
   );

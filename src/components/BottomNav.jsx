@@ -3,6 +3,7 @@ const ITEMS = [
   { key: 'map', label: 'Map', icon: 'map' },
   { key: 'forecast', label: 'Forecast', icon: 'rainy' },
   { key: 'alerts', label: 'Alerts', icon: 'notifications_active' },
+  { key: 'about', label: 'About', icon: 'info' },
 ];
 
 // One persistent nav so the active pill can slide between tabs instead of jumping.

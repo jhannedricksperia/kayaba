@@ -99,7 +99,6 @@ vercel dev
 | `GEMINI_API_KEY` | for AI | Google AI Studio / Gemini API key. Server-side only, never exposed to the browser. |
 | `GEMINI_MODEL` | no | Model for the flood assessment. Defaults to `gemini-3.5-flash` (falls back to other Flash models if overloaded). |
 | `GEMINI_CHAT_MODEL` | no | Model for the chat assistant. Defaults to `gemini-3.5-flash-lite`. |
-| `VITE_GOOGLE_MAPS_API_KEY` | no | Use Google Maps instead of OpenStreetMap. Maps JavaScript API key, restrict it by HTTP referrer. |
 
 ## Deploy to Vercel
 

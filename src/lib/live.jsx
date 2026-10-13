@@ -23,7 +23,7 @@ async function askAi(place, data, terrain, signal) {
       rainNow: data.rainNow,
       windNow: data.windNow,
       maxWind: data.maxWind,
-      terrain,
+      terrain: terrain ? Object.fromEntries(Object.entries(terrain).filter(([k]) => k !== 'grid')) : null,
       steps: data.steps.map((s, i) => ({ hours: i * 3, mm: s.mm, depth: s.depth })),
     }),
     signal,
@@ -36,7 +36,10 @@ async function askAi(place, data, terrain, signal) {
 // Replace the formula depths with the AI's, keeping the rain/icon data from the forecast.
 function applyAi(data, ai) {
   const byHour = new Map(ai.steps.map((s) => [s.hours, s.depth_m]));
-  const steps = data.steps.map((s, i) => ({ ...s, depth: byHour.get(i * 3) ?? s.depth }));
+  const steps = data.steps.map((s, i) => {
+    const d = byHour.get(i * 3) ?? s.depth;
+    return { ...s, depth: d < 0.1 ? 0 : d };
+  });
   const nowDepth = steps[0].depth;
   const best = steps.reduce((b, s) => (s.depth > b.depth ? s : b), steps[0]);
   return { ...data, steps, nowDepth, peak: best.depth >= nowDepth ? best : { ...best, depth: nowDepth } };

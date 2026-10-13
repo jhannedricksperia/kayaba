@@ -21,10 +21,10 @@ function buildAlerts(live) {
     icon: 'flood',
     title:
       peak.depth >= 0.1
-        ? `Posibleng baha hanggang ${peak.depth.toFixed(1)} m sa paligid ng ${formatHour(peak.time)}`
+        ? `Maaaring umabot sa ${peak.depth.toFixed(1)} m ang baha mga ${formatHour(peak.time)}`
         : 'Walang inaasahang baha sa susunod na 24 oras',
-    body: `${describeDepth(peak.depth)}. Ngayon: ${data.nowDepth.toFixed(1)} m.`,
-    source: ai.status === 'ok' ? `AI estimate (${ai.model})` : 'Elevation + rainfall formula',
+    body: `Sa ngayon: ${data.nowDepth.toFixed(1)} m. ${describeDepth(peak.depth)}.`,
+    source: ai.status === 'ok' ? 'AI estimate' : 'Kalkulasyon (taas ng lugar at ulan)',
   });
 
   const maxMm = Math.max(0, ...data.steps.map((s) => s.mm));
@@ -34,8 +34,8 @@ function buildAlerts(live) {
       level: data.rainNow >= 7.6 || maxMm >= 60 ? 'danger' : 'caution',
       badge: describeRain(data.rainNow),
       icon: 'rainy',
-      title: `Ulan: ${data.rainNow.toFixed(1)} mm/h ngayon, hanggang ${maxMm.toFixed(0)} mm sa loob ng 3 oras`,
-      body: 'Mabilis tumaas ang tubig sa mabababang lugar kapag tuloy-tuloy ang ulan.',
+      title: `Umuulan ng ${data.rainNow.toFixed(1)} mm/h ngayon. Hanggang ${maxMm.toFixed(0)} mm ang inaasahan sa loob ng 3 oras.`,
+      body: 'Mabilis tumataas ang tubig sa mabababang lugar kapag tuloy-tuloy ang ulan.',
       source: 'Open-Meteo forecast',
     });
   }
@@ -46,8 +46,8 @@ function buildAlerts(live) {
       level: data.signal >= 3 ? 'danger' : 'caution',
       badge: data.signal > 0 ? `Signal #${data.signal} (est.)` : 'Malakas na hangin',
       icon: 'air',
-      title: `Hangin hanggang ${data.maxWind} km/h sa susunod na 24 oras`,
-      body: `Gusts ngayon: ${data.gustNow} km/h. Ang signal ay estimate mula sa forecast, hindi opisyal na bulletin.`,
+      title: `Malakas na hangin, hanggang ${data.maxWind} km/h sa susunod na 24 oras`,
+      body: `Bugso ngayon: ${data.gustNow} km/h. Tantiya lang ang signal mula sa forecast at hindi galing sa opisyal na bulletin.`,
       source: 'Open-Meteo forecast',
     });
   }
@@ -60,7 +60,7 @@ function buildAlerts(live) {
       icon: 'auto_awesome',
       title: ai.headline,
       body: ai.advice.join(' • '),
-      source: `AI estimate (${ai.model})`,
+      source: 'AI estimate',
     });
   }
 
@@ -70,9 +70,9 @@ function buildAlerts(live) {
       level: 'caution',
       badge: 'Mababang lugar',
       icon: 'landscape',
-      title: `Mas mababa ng ${terrain.belowMean.toFixed(1)} m ang lugar na ito kaysa sa paligid`,
-      body: 'Dito naiipon ang tubig galing sa mas mataas na bahagi. Mag-ingat kahit katamtaman lang ang ulan.',
-      source: 'Elevation data',
+      title: `Mas mababa nang ${terrain.belowMean.toFixed(1)} m ang lugar na ito kaysa sa paligid`,
+      body: 'Dito kasi naiipon ang tubig mula sa mas mataas na bahagi, kaya mag-ingat kahit katamtaman lang ang ulan.',
+      source: 'Datos ng taas ng lugar',
     });
   }
   return out;
@@ -87,7 +87,7 @@ export default function LiveAlerts() {
   if (!data) {
     return (
       <div className="bg-surface-container-lowest rounded-lg p-5 text-on-surface-variant font-body-sm">
-        {error ? `Hindi ma-load ang forecast: ${error}` : 'Kinukuha ang live na babala…'}
+        {error ? `Hindi ma-load ang forecast: ${error}` : 'Kinukuha ang pinakabagong babala…'}
       </div>
     );
   }
@@ -119,7 +119,7 @@ export default function LiveAlerts() {
           </span>
           <div className="min-w-0">
             <div className="font-headline-sm text-headline-sm text-secondary-container">{classify(data.peak.depth).label}</div>
-            <div className="font-body-sm text-[13px] text-on-primary/80 truncate">{place.name} • live forecast</div>
+            <div className="font-body-sm text-[13px] text-on-primary/80 truncate">{place.name} • pinakabagong forecast</div>
           </div>
         </div>
         <button
@@ -134,8 +134,32 @@ export default function LiveAlerts() {
           <span className="font-label-badge text-[11px] bg-secondary-container/20 text-secondary-container px-2 py-0.5 rounded-full">TL</span>
         </button>
         <p className="mt-3 font-body-sm text-body-sm text-on-primary/90">
-          Estimate lang ito at hindi opisyal na babala. Sundin ang PAGASA, NDRRMC at ang inyong LGU o barangay.
+          Tantiya lang ito at hindi opisyal na babala. Sundin ang abiso ng PAGASA, NDRRMC, at ng inyong LGU o barangay.
         </p>
+      </div>
+
+      <div className="bg-surface-container-lowest rounded-xl p-5 shadow-[0_8px_24px_-4px_rgba(15,43,72,0.07)] flex flex-col gap-3">
+        <h3 className="font-headline-sm text-headline-sm text-primary">Opisyal na impormasyon</h3>
+        <p className="font-body-sm text-body-sm text-on-surface-variant">
+          Galing sa weather model ng Open-Meteo ang mga numero dito, hindi sa PAGASA. Para sa opisyal na babala, bisitahin ang:
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            ['PAGASA', 'https://bagong.pagasa.dost.gov.ph/'],
+            ['NDRRMC', 'https://ndrrmc.gov.ph/'],
+          ].map(([label, href]) => (
+            <a
+              key={label}
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-on-primary font-label-badge text-[13px] font-bold active:scale-95 transition-transform"
+            >
+              {label}
+              <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+            </a>
+          ))}
+        </div>
       </div>
 
       <ul className="flex flex-col gap-5">

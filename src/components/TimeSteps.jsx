@@ -1,9 +1,10 @@
 import { classify } from '../lib/weather.js';
 import { useLive } from '../lib/live.jsx';
+import HScroll from './HScroll.jsx';
 
 // Forecast steps are 3 h apart: index 0 = now, 1 = +3h, 2 = +6h, 4 = +12h, 8 = +24h.
 export const STEPS = [
-  { label: 'Now', idx: 0 },
+  { label: 'Ngayon', idx: 0 },
   { label: '+3h', idx: 1 },
   { label: '+6h', idx: 2 },
   { label: '+12h', idx: 4 },
@@ -16,7 +17,7 @@ export default function TimeSteps({ value, onChange, variant = 'grid' }) {
 
   if (variant === 'pills') {
     return (
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+      <HScroll className="items-center gap-1.5 pb-1">
         {STEPS.map((s) => (
           <button
             key={s.idx}
@@ -30,7 +31,7 @@ export default function TimeSteps({ value, onChange, variant = 'grid' }) {
             {depthAt(s.idx) != null && ` • ${depthAt(s.idx).toFixed(1)}m`}
           </button>
         ))}
-      </div>
+      </HScroll>
     );
   }
 

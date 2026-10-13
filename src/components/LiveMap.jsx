@@ -4,8 +4,10 @@ import 'leaflet/dist/leaflet.css';
 import { useLive } from '../lib/live.jsx';
 import { fetchNearby } from '../lib/nearby.js';
 import { classify } from '../lib/weather.js';
+import { floodCells } from '../lib/terrain.js';
 
 const COLORS = { safe: '#00daf3', caution: '#006875', danger: '#0f2b48' };
+const FLOOD_FILL = { safe: '#38bdf8', caution: '#1d6fd8', danger: '#0b2a6b' };
 
 const pinIcon = (label) =>
   L.divIcon({
@@ -29,7 +31,7 @@ const shelterIcon = () =>
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export default function LiveMap({ stepIndex = 0, className = '', onNearby, layers = { flood: true, water: true, shelters: true } }) {
-  const { place, setPlace, data } = useLive();
+  const { place, setPlace, data, terrain } = useLive();
   const host = useRef(null);
   const map = useRef(null);
   const layersRef = useRef({ flood: null, user: null, shelters: null, water: null });
@@ -102,17 +104,28 @@ export default function LiveMap({ stepIndex = 0, className = '', onNearby, layer
     const depth = step ? step.depth : 0;
     const key = classify(depth).key;
     const color = COLORS[key];
-    // Illustrative zone: radius grows with estimated depth (not a surveyed flood extent).
-    [1, 0.66, 0.36].forEach((f, i) =>
-      L.circle([place.lat, place.lon], {
-        radius: (200 + depth * 700) * f,
-        stroke: false,
-        fillColor: color,
-        fillOpacity: 0.12 + i * 0.1,
-      }).addTo(flood)
-    );
+    // Possible flood extent: every ~200 m cell lower than the estimated water surface.
+    const cells = floodCells(terrain?.grid, depth);
+    const g = terrain?.grid;
+    if (g && cells.length) {
+      const hLat = g.dLat / 2;
+      const hLon = g.dLon / 2;
+      cells.forEach((c) => {
+        const k = c.depth < 0.35 ? 'safe' : c.depth < 1 ? 'caution' : 'danger';
+        L.rectangle(
+          [
+            [c.lat - hLat, c.lon - hLon],
+            [c.lat + hLat, c.lon + hLon],
+          ],
+          { stroke: false, fillColor: FLOOD_FILL[k], fillOpacity: 0.5, interactive: false }
+        ).addTo(flood);
+      });
+    } else if (depth > 0) {
+      // no terrain yet: a soft circle around the pin instead
+      L.circle([place.lat, place.lon], { radius: 150 + depth * 500, stroke: false, fillColor: color, fillOpacity: 0.25 }).addTo(flood);
+    }
     L.marker([place.lat, place.lon], { icon: pinIcon(`Ikaw • ${depth.toFixed(1)} m`) }).addTo(user);
-  }, [data, stepIndex, place.lat, place.lon]);
+  }, [data, terrain, stepIndex, place.lat, place.lon]);
 
   useEffect(() => {
     const m = map.current;
@@ -149,9 +162,9 @@ export default function LiveMap({ stepIndex = 0, className = '', onNearby, layer
         </div>
       )}
       <div className="absolute z-[500] left-3 bottom-8 bg-white/95 rounded-2xl shadow px-2.5 py-1.5 flex items-center gap-2 font-label-badge text-[10px] text-primary">
-        <span className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS.safe }} />Kaya pa</span>
-        <span className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS.caution }} />Ingat</span>
-        <span className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS.danger }} />Bawal</span>
+        <span className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-full" style={{ background: FLOOD_FILL.safe }} />Mababaw</span>
+        <span className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-full" style={{ background: FLOOD_FILL.caution }} />Mataas</span>
+        <span className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-full" style={{ background: FLOOD_FILL.danger }} />Malalim</span><span className="text-on-surface-variant">• tantiya lang</span>
       </div>
     </div>
   );

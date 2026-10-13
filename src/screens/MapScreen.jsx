@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLive } from '../lib/live.jsx';
-import LiveMap from '../components/MapView.jsx';
+import LiveMap from '../components/LiveMap.jsx';
 import LayerChips from '../components/LayerChips.jsx';
 import MapPanel from '../components/MapPanel.jsx';
 import PlaceSearch from '../components/PlaceSearch.jsx';

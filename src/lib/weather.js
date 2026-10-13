@@ -5,17 +5,52 @@ const GEOCODE = 'https://geocoding-api.open-meteo.com/v1/search';
 
 export const DEFAULT_PLACE = { name: 'Manila', admin: 'Metro Manila', lat: 14.5995, lon: 120.9842 };
 
+// Streets, landmarks and barangays come from OpenStreetMap (Nominatim); towns and cities
+// from Open-Meteo. Results are merged, streets/landmarks first.
 export async function searchPlaces(query, signal) {
-  const url = `${GEOCODE}?name=${encodeURIComponent(query)}&count=6&language=en&countryCode=PH`;
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error('Geocoding failed');
-  const data = await res.json();
-  return (data.results || []).map((r) => ({
-    name: r.name,
-    admin: [r.admin2, r.admin1].filter(Boolean).join(', '),
-    lat: r.latitude,
-    lon: r.longitude,
-  }));
+  const nominatim = async () => {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&countrycodes=ph&format=jsonv2&addressdetails=1&limit=6&accept-language=en`;
+    const res = await fetch(url, { signal });
+    if (!res.ok) throw new Error("Nominatim failed");
+    const rows = await res.json();
+    return rows.map((r) => {
+      const a = r.address || {};
+      const town = a.city || a.town || a.municipality || a.village || a.county;
+      const area = a.suburb || a.neighbourhood || a.quarter || a.city_district;
+      return {
+        name: r.name || a.road || String(r.display_name).split(",")[0],
+        admin: [area, town, a.state || a.region].filter(Boolean).join(", "),
+        lat: Number(r.lat),
+        lon: Number(r.lon),
+        kind: r.addresstype || r.type,
+      };
+    });
+  };
+  const openMeteo = async () => {
+    const url = `${GEOCODE}?name=${encodeURIComponent(query)}&count=5&language=en&countryCode=PH`;
+    const res = await fetch(url, { signal });
+    if (!res.ok) throw new Error("Geocoding failed");
+    const data = await res.json();
+    return (data.results || []).map((r) => ({
+      name: r.name,
+      admin: [r.admin2, r.admin1].filter(Boolean).join(", "),
+      lat: r.latitude,
+      lon: r.longitude,
+    }));
+  };
+
+  const [osm, om] = await Promise.allSettled([nominatim(), openMeteo()]);
+  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+  const all = [...(osm.status === "fulfilled" ? osm.value : []), ...(om.status === "fulfilled" ? om.value : [])];
+  const seen = new Set();
+  return all
+    .filter((p) => {
+      const key = `${p.lat.toFixed(3)},${p.lon.toFixed(3)}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return Number.isFinite(p.lat) && Number.isFinite(p.lon);
+    })
+    .slice(0, 8);
 }
 
 export async function fetchForecast(place, signal) {
@@ -49,7 +84,8 @@ const lowlandFactor = (elev) => (elev < 5 ? 1.3 : elev < 15 ? 1 : elev < 40 ? 0.
 
 // `terrain` is the local-basin multiplier from terrain.js (1 = flat surroundings).
 export function depthFromRain(mm3h, elevation, terrain = 1) {
-  return +Math.min(2.5, mm3h * 0.012 * lowlandFactor(elevation) * terrain).toFixed(2);
+  const depth = +Math.min(2.5, mm3h * 0.012 * lowlandFactor(elevation) * terrain).toFixed(2);
+  return depth < 0.1 ? 0 : depth; // under 10 cm is just wet pavement
 }
 
 // Re-derive depths once the surrounding terrain is known.

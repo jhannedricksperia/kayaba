@@ -27,7 +27,7 @@ let currentWeatherMode = 'rain';
 const ambientLight = new THREE.AmbientLight(0xdff0fa, 1.25);
 scene.add(ambientLight);
 
-const dirLight = new THREE.DirectionalLight(0xffffff, 1.35);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
 dirLight.position.set(3.5, 6.5, 4.2);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.width = 512;
@@ -215,54 +215,81 @@ sidewalk.position.set(0, 0.08, -1);
 sidewalk.receiveShadow = true;
 scene.add(sidewalk);
 
-// Ultra-cute Rounded Cottage
-function createCuteCottage(x, z, scale, wallColor, roofColor) {
+// Filipino bungalow: blue siding, stucco ground floor, dark hip roof, porch with a brick pillar
+function createFilipinoHouse(x, z, scale, flip = 1) {
   const house = new THREE.Group();
-  // Round plump body
-  const body = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.65 * scale, 0.7 * scale, 0.9 * scale, 16),
-    new THREE.MeshLambertMaterial({ color: wallColor })
-  );
-  body.position.y = (0.9 * scale) / 2;
-  body.castShadow = true;
-  house.add(body);
+  const mat = (col) => new THREE.MeshLambertMaterial({ color: col });
+  const box = (w, h, d, col, px, py, pz) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(col));
+    m.position.set(px, py, pz);
+    m.castShadow = true;
+    house.add(m);
+    return m;
+  };
+  const hip = (w, h, d, col, px, py, pz) => {
+    const g = new THREE.ConeGeometry(Math.SQRT1_2, h, 4);
+    g.rotateY(Math.PI / 4);
+    const m = new THREE.Mesh(g, mat(col));
+    m.scale.set(w, 1, d);
+    m.position.set(px, py, pz);
+    m.castShadow = true;
+    house.add(m);
+  };
+  const win = (px, py, pz, w = 0.26, h = 0.26) => {
+    box(w + 0.06, h + 0.06, 0.03, 0xffffff, px, py, pz);
+    box(w, h, 0.04, 0xbfe3ff, px, py, pz + 0.01);
+    box(0.02, h, 0.045, 0xffffff, px, py, pz + 0.012);
+  };
+  const navy = 0x1d3f7a;
 
-  // Mushroom / Cupcake Dome Roof
-  const roof = new THREE.Mesh(
-    new THREE.SphereGeometry(0.8 * scale, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2),
-    new THREE.MeshLambertMaterial({ color: roofColor })
-  );
-  roof.position.y = 0.9 * scale;
-  roof.castShadow = true;
-  house.add(roof);
+  // ground floor
+  box(0.62, 0.6, 0.95, 0x7fa8da, -0.69, 0.3, 0); // blue wing
+  box(0.55, 0.6, 0.95, 0x9fb08a, -0.1, 0.3, 0); // stucco
+  box(0.85, 0.5, 0.8, 0x24313f, 0.62, 0.26, -0.05); // dark porch interior
+  box(0.12, 0.66, 0.12, 0xb5714a, 1.02, 0.33, 0.42); // brick pillar
+  box(0.95, 0.07, 1.0, navy, 0.62, 0.69, 0.02); // porch roof
+  box(0.95, 0.05, 0.04, 0xffffff, 0.62, 0.65, 0.52); // fascia
+  box(1.7, 0.05, 1.05, navy, -0.45, 0.63, 0); // eave over the wing
+  box(1.7, 0.04, 0.04, 0xffffff, -0.45, 0.6, 0.53);
 
-  // Cute roof chimney with little smoke puff
-  const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * scale, 0.08 * scale, 0.3 * scale, 8), whiteMat);
-  chimney.position.set(0.35 * scale, 1.4 * scale, 0.1);
-  house.add(chimney);
-  const smoke = new THREE.Mesh(new THREE.SphereGeometry(0.1 * scale, 8, 8), whiteMat);
-  smoke.position.set(0.38 * scale, 1.62 * scale, 0.1);
-  house.add(smoke);
+  // upper floor + hip roof
+  box(1.15, 0.55, 0.75, 0x6f9fe0, -0.25, 0.93, -0.05);
+  hip(1.5, 0.5, 1.0, navy, -0.25, 1.45, -0.05);
+  box(1.5, 0.04, 0.04, 0xffffff, -0.25, 1.2, 0.5);
 
-  // Round Door
-  const door = new THREE.Mesh(new THREE.CylinderGeometry(0.18 * scale, 0.18 * scale, 0.04, 12), new THREE.MeshLambertMaterial({ color: cOrange }));
-  door.rotation.x = Math.PI / 2;
-  door.position.set(0, 0.22 * scale, 0.65 * scale);
-  house.add(door);
+  // windows, air-con, steps
+  win(-0.82, 0.33, 0.49, 0.22, 0.3);
+  win(-0.55, 0.33, 0.49, 0.22, 0.3);
+  win(-0.1, 0.33, 0.49, 0.26, 0.3);
+  win(-0.62, 0.95, 0.33);
+  win(-0.25, 0.95, 0.33);
+  win(0.12, 0.95, 0.33);
+  box(0.15, 0.1, 0.09, 0xffffff, -1.05, 0.45, 0.52);
+  box(1.1, 0.05, 0.3, 0xcfd8dc, 0.55, 0.03, 0.62);
 
-  // Cute Porch Windows
-  const win = new THREE.Mesh(new THREE.SphereGeometry(0.13 * scale, 12, 12), new THREE.MeshBasicMaterial({ color: cSkyBlue }));
-  win.position.set(0.34 * scale, 0.55 * scale, 0.55 * scale);
-  house.add(win);
+  // potted plants along the front
+  const potMat = mat(0xffffff);
+  const leaves = [0x2f9e44, 0xc0392b, 0xe9d13b, 0x2f9e44, 0xb03a48, 0x2f9e44, 0xe9d13b];
+  leaves.forEach((col, i) => {
+    const px = -0.95 + i * 0.3;
+    const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.045, 0.11, 10), potMat);
+    pot.position.set(px, 0.075, 0.68);
+    house.add(pot);
+    const plant = new THREE.Mesh(new THREE.SphereGeometry(0.11 + (i % 2) * 0.03, 10, 10), mat(col));
+    plant.scale.set(1, 1.25, 1);
+    plant.position.set(px, 0.25 + (i % 2) * 0.02, 0.68);
+    plant.castShadow = true;
+    house.add(plant);
+  });
 
+  house.scale.set(scale * flip, scale, scale);
   house.position.set(x, 0.16, z);
   scene.add(house);
   return house;
 }
 
-createCuteCottage(-1.85, -1.2, 1.1, 0xffffff, cDeepBlue);
-createCuteCottage(1.85, -1.25, 0.95, 0xdbeafe, 0x0284c7);
-createCuteCottage(-0.1, -1.5, 0.8, 0xffffff, cYellow);
+createFilipinoHouse(-0.2, -1.5, 1.2);
+createFilipinoHouse(2.45, -1.15, 0.7, -1);
 
 // Street Lamp with Smiling Lantern
 const lampGroup = new THREE.Group();
@@ -280,110 +307,140 @@ lampLight.position.set(0, 1.76, 0);
 lampGroup.add(lampLight);
 scene.add(lampGroup);
 
-// --- SUPER CHIBI PROPORTIONED CARTOON CHARACTER ---
-// Big head, tiny round body, bright cute yellow boots and frog-ears raincap!
+// --- FILIPINO BOY: salakot, camisa, red scarf, waving the Philippine flag ---
 const chibiChar = new THREE.Group();
 chibiChar.position.set(-0.55, 0.18, 0.35);
 
-// Cute Chubby Boots (Yellow Gumboots)
-const bootGeo = new THREE.CylinderGeometry(0.11, 0.1, 0.32, 16);
-const bootL = new THREE.Mesh(bootGeo, yellowMat);
-bootL.position.set(-0.16, 0.16, 0);
-chibiChar.add(bootL);
-const bootR = new THREE.Mesh(bootGeo, yellowMat);
-bootR.position.set(0.16, 0.16, 0);
-chibiChar.add(bootR);
+const lam = (col) => new THREE.MeshLambertMaterial({ color: col });
+const skin = lam(0xe3a877);
+const red = lam(0xd62839);
+const white = lam(0xffffff);
+const dark = new THREE.MeshBasicMaterial({ color: 0x1b1b1b });
 
-// Cute Short Pants
-const pants = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.26, 0.22, 16), deepBlueMat);
-pants.position.set(0, 0.38, 0);
-chibiChar.add(pants);
+// red pants + shoes
+[-0.12, 0.12].forEach((px) => {
+  const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.11, 0.36, 14), red);
+  leg.position.set(px, 0.2, 0);
+  chibiChar.add(leg);
+  const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 12), lam(0x6b4423));
+  shoe.scale.set(1, 0.6, 1.4);
+  shoe.position.set(px, 0.03, 0.05);
+  chibiChar.add(shoe);
+});
+const hips = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.26, 0.16, 16), red);
+hips.position.set(0, 0.44, 0);
+chibiChar.add(hips);
 
-// Plump Raincoat Body
-const body = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 16), cyanMat);
-body.scale.set(1.0, 1.15, 0.9);
-body.position.set(0, 0.68, 0);
+// white camisa
+const body = new THREE.Mesh(new THREE.SphereGeometry(0.3, 18, 18), white);
+body.scale.set(1.0, 1.2, 0.85);
+body.position.set(0, 0.7, 0);
 body.castShadow = true;
 chibiChar.add(body);
 
-// Big Cute Yellow Buttons on Coat
-for (let b = 0; b < 2; b++) {
-  const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.02, 12), yellowMat);
-  btn.rotation.x = Math.PI / 2;
-  btn.position.set(0, 0.64 + b * 0.12, 0.3);
-  chibiChar.add(btn);
-}
+// red neckerchief
+const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.05, 10, 20), red);
+scarf.rotation.x = Math.PI / 2;
+scarf.position.set(0, 0.97, 0.02);
+chibiChar.add(scarf);
+const scarfTail = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.2, 3), red);
+scarfTail.rotation.x = Math.PI;
+scarfTail.position.set(0, 0.86, 0.2);
+chibiChar.add(scarfTail);
 
-// Giant Chibi Head (Cute ratio: head almost same size as body!)
-const head = new THREE.Mesh(new THREE.SphereGeometry(0.36, 24, 24), skinMat);
-head.position.set(0, 1.15, 0);
+// head
+const head = new THREE.Mesh(new THREE.SphereGeometry(0.36, 24, 24), skin);
+head.position.set(0, 1.2, 0);
 head.castShadow = true;
 chibiChar.add(head);
 
-// Yellow Frog/Bear Rain Hood
-const hood = new THREE.Mesh(
-  new THREE.SphereGeometry(0.38, 20, 20, 0, Math.PI * 2, 0, Math.PI / 1.7),
-  yellowMat
-);
-hood.position.set(0, 1.2, 0);
-chibiChar.add(hood);
+// black hair under the hat
+const hair = new THREE.Mesh(new THREE.SphereGeometry(0.375, 20, 20, 0, Math.PI * 2, 0, Math.PI / 2.1), dark);
+hair.position.set(0, 1.2, -0.01);
+head.add(hair);
+hair.position.set(0, 0, -0.01);
+[-0.16, 0, 0.17].forEach((bx, i) => {
+  const bang = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.2, 4), dark);
+  bang.rotation.x = Math.PI;
+  bang.position.set(bx, 0.22 - (i === 1 ? 0.03 : 0), 0.3);
+  head.add(bang);
+});
 
-// Cute Frog/Bear Ears on Hood!
-const earL = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12), yellowMat);
-earL.position.set(-0.25, 1.52, 0.05);
-chibiChar.add(earL);
-const earR = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12), yellowMat);
-earR.position.set(0.25, 1.52, 0.05);
-chibiChar.add(earR);
-const earInnerL = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), pinkMat);
-earInnerL.position.set(-0.25, 1.52, 0.12);
-chibiChar.add(earInnerL);
-const earInnerR = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), pinkMat);
-earInnerR.position.set(0.25, 1.52, 0.12);
-chibiChar.add(earInnerR);
+// face
+[-0.13, 0.13].forEach((ex) => {
+  const eye = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 12), dark);
+  eye.position.set(ex, 0.02, 0.33);
+  head.add(eye);
+  const shine = new THREE.Mesh(new THREE.SphereGeometry(0.015, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+  shine.position.set(ex + 0.012, 0.04, 0.37);
+  head.add(shine);
+  const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 10), new THREE.MeshBasicMaterial({ color: 0xf2a08a, transparent: true, opacity: 0.8 }));
+  cheek.position.set(ex * 1.55, -0.1, 0.28);
+  head.add(cheek);
+});
+const smile = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.018, 8, 20, Math.PI), dark);
+smile.rotation.z = Math.PI;
+smile.position.set(0, -0.09, 0.34);
+head.add(smile);
 
-// Sparkly Anime Eyes
-const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 12), darkEyeMat);
-eyeL.position.set(-0.13, 1.14, 0.33);
-chibiChar.add(eyeL);
-const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 12), darkEyeMat);
-eyeR.position.set(0.13, 1.14, 0.33);
-chibiChar.add(eyeR);
+// salakot (conical straw hat)
+const hat = new THREE.Mesh(new THREE.ConeGeometry(0.64, 0.38, 28), lam(0xc9a27a));
+hat.position.set(0, 1.55, 0);
+hat.castShadow = true;
+chibiChar.add(hat);
+const brim = new THREE.Mesh(new THREE.TorusGeometry(0.63, 0.025, 8, 36), lam(0x8a6a45));
+brim.rotation.x = Math.PI / 2;
+brim.position.set(0, 1.37, 0);
+chibiChar.add(brim);
+const underside = new THREE.Mesh(new THREE.CircleGeometry(0.63, 28), lam(0x5b4630));
+underside.rotation.x = Math.PI / 2;
+underside.position.set(0, 1.365, 0);
+chibiChar.add(underside);
 
-// Sparkle eye shines
-const shine1 = new THREE.Mesh(new THREE.SphereGeometry(0.02, 8, 8), shineMat);
-shine1.position.set(-0.14, 1.16, 0.37);
-chibiChar.add(shine1);
-const shine2 = new THREE.Mesh(new THREE.SphereGeometry(0.02, 8, 8), shineMat);
-shine2.position.set(0.12, 1.16, 0.37);
-chibiChar.add(shine2);
+// left arm hangs, right arm holds the flag up
+const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.07, 0.42, 12), white);
+armL.position.set(-0.33, 0.68, 0);
+armL.rotation.z = 0.25;
+chibiChar.add(armL);
+const handL = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 10), skin);
+handL.position.set(-0.4, 0.45, 0);
+chibiChar.add(handL);
 
-// Rosy Kawaii Blushing Cheeks
-const blushL = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 10), pinkMat);
-blushL.position.set(-0.21, 1.07, 0.28);
-chibiChar.add(blushL);
-const blushR = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 10), pinkMat);
-blushR.position.set(0.21, 1.07, 0.28);
-chibiChar.add(blushR);
+const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.07, 0.5, 12), white);
+armR.position.set(0.4, 0.98, 0);
+armR.rotation.z = -0.75;
+chibiChar.add(armR);
+const handR = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 10), skin);
+handR.position.set(0.56, 1.15, 0.02);
+chibiChar.add(handR);
 
-// Cute Waving Umbrella
+// Philippine flag on a bamboo flagPole
+const flagPole = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 1.25, 8), lam(0xb8864b));
+flagPole.position.set(0.56, 1.45, 0.02);
+chibiChar.add(flagPole);
+const flag = new THREE.Group();
+flag.position.set(0.58, 1.86, 0.02);
+const flagW = 0.62;
+const flagH = 0.34;
+const top = new THREE.Mesh(new THREE.PlaneGeometry(flagW, flagH / 2), new THREE.MeshBasicMaterial({ color: 0x0038a8, side: THREE.DoubleSide }));
+top.position.set(flagW / 2, flagH / 4, 0);
+const bottom = new THREE.Mesh(new THREE.PlaneGeometry(flagW, flagH / 2), new THREE.MeshBasicMaterial({ color: 0xce1126, side: THREE.DoubleSide }));
+bottom.position.set(flagW / 2, -flagH / 4, 0);
+const triShape = new THREE.Shape();
+triShape.moveTo(0, flagH / 2);
+triShape.lineTo(0, -flagH / 2);
+triShape.lineTo(flagW * 0.42, 0);
+triShape.closePath();
+const tri = new THREE.Mesh(new THREE.ShapeGeometry(triShape), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }));
+tri.position.z = 0.004;
+const sun = new THREE.Mesh(new THREE.CircleGeometry(0.035, 12), new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide }));
+sun.position.set(0.1, 0, 0.008);
+flag.add(top, bottom, tri, sun);
+chibiChar.add(flag);
+
+// Kept for the weather logic below; the hat does the rain-proofing now.
 const umbrellaGroup = new THREE.Group();
-umbrellaGroup.position.set(0.35, 0.85, 0);
-
-const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.85, 8), deepBlueMat);
-handle.position.set(0.15, 0.4, 0.1);
-handle.rotation.z = -0.25;
-umbrellaGroup.add(handle);
-
-const canopy = new THREE.Mesh(new THREE.ConeGeometry(0.55, 0.32, 16, 1, true), cyanMat);
-canopy.position.set(0.25, 0.8, 0.1);
-canopy.rotation.z = -0.25;
-umbrellaGroup.add(canopy);
-
-const canopyPompom = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), yellowMat);
-canopyPompom.position.set(0.29, 0.98, 0.1);
-umbrellaGroup.add(canopyPompom);
-
+umbrellaGroup.visible = false;
 chibiChar.add(umbrellaGroup);
 scene.add(chibiChar);
 
@@ -541,7 +598,7 @@ function setWeatherMode(mode) {
     umbrellaGroup.visible = true;
     lampLight.intensity = 0.5;
     ambientLight.color.setHex(0x94a3b8);
-    ambientLight.intensity = 1.05;
+    ambientLight.intensity = 0.8;
     dirLight.color.setHex(0x93c5fd);
     waterMat.color.setHex(cCyan);
   } else if (mode === 'day') {
@@ -557,7 +614,7 @@ function setWeatherMode(mode) {
     umbrellaGroup.visible = false;
     lampLight.intensity = 0.0;
     ambientLight.color.setHex(0xfffbeb);
-    ambientLight.intensity = 1.45;
+    ambientLight.intensity = 0.85;
     dirLight.color.setHex(0xffedd5);
     waterMat.color.setHex(cSkyBlue);
   } else if (mode === 'night') {
@@ -642,6 +699,11 @@ const setLevel = (d) => {
   floodY = 0.16 + Math.max(0, Math.min(2.2, d)) * 0.78;
   waterMesh.position.y = floodY;
   marker.position.y = floodY + 0.05;
+  // no flood -> dry street: no water plane, no swimming dog or buoy
+  const wet = d >= 0.1;
+  waterMesh.visible = wet;
+  doggo.visible = wet;
+  buoyGroup.visible = wet;
 };
 window.__setFloodLevel = setLevel;
 if (window.__lastDepth !== undefined) setLevel(window.__lastDepth);
@@ -691,6 +753,10 @@ function animate() {
   doggo.position.y = floodY + 0.02 + Math.sin(t * 2.6 + 0.8) * 0.03;
   doggo.rotation.z = Math.sin(t * 2.2) * 0.06;
   dogTail.rotation.y = Math.sin(t * 7.0) * 0.45; // fast happy wag!
+
+  // Flag waves
+  flag.rotation.y = Math.sin(t * 3.2) * 0.22;
+  flag.rotation.z = Math.sin(t * 2.1) * 0.05;
 
   // Duck buoy bobbing
   buoyGroup.position.y = floodY + 0.02 + Math.sin(t * 2.2 + 1.2) * 0.028;

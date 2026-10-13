@@ -3,11 +3,12 @@ import Home from './screens/Home.jsx';
 import MapScreen from './screens/MapScreen.jsx';
 import Forecast from './screens/Forecast.jsx';
 import Alerts from './screens/Alerts.jsx';
+import About from './screens/About.jsx';
 import { LiveProvider } from './lib/live.jsx';
 import BottomNav from './components/BottomNav.jsx';
 import ChatWidget from './components/ChatWidget.jsx';
 
-const SCREENS = { home: Home, map: MapScreen, forecast: Forecast, alerts: Alerts };
+const SCREENS = { home: Home, map: MapScreen, forecast: Forecast, alerts: Alerts, about: About };
 
 // Inline handlers carried over from the Stitch markup call through this helper.
 window.__run = (el, code, event) => new Function('event', code).call(el, event);
